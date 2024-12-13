@@ -1,19 +1,42 @@
 using System;
 using UnityEngine;
+using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
 namespace Zenject.Asteroids
 {
     public class ShipStateDead : ShipState
     {
-        readonly SignalBus _signalBus;
-        readonly BrokenShipFactory _brokenShipFactory;
-        readonly ExplosionFactory _explosionFactory;
-        readonly Settings _settings;
-        readonly Ship _ship;
+        #region Public Nested Types
 
-        GameObject _shipBroken;
-        GameObject _explosion;
+        [Serializable]
+        public class Settings
+        {
+            #region Variables
+
+            public float explosionForce;
+
+            #endregion
+        }
+
+        public class Factory : PlaceholderFactory<ShipStateDead> { }
+
+        #endregion
+
+        #region Variables
+
+        private readonly BrokenShipFactory _brokenShipFactory;
+        private readonly ExplosionFactory _explosionFactory;
+        private readonly Settings _settings;
+        private readonly Ship _ship;
+        private readonly SignalBus _signalBus;
+        private GameObject _explosion;
+
+        private GameObject _shipBroken;
+
+        #endregion
+
+        #region Setup/Teardown
 
         public ShipStateDead(
             Settings settings, Ship ship,
@@ -26,6 +49,20 @@ namespace Zenject.Asteroids
             _explosionFactory = explosionFactory;
             _settings = settings;
             _ship = ship;
+        }
+
+        #endregion
+
+        #region Public methods
+
+        public override void Dispose()
+        {
+            _ship.MeshRenderer.enabled = true;
+
+            _ship.ParticleEmitter.gameObject.SetActive(true);
+
+            Object.Destroy(_explosion);
+            Object.Destroy(_shipBroken);
         }
 
         public override void Start()
@@ -41,38 +78,18 @@ namespace Zenject.Asteroids
             _shipBroken.transform.position = _ship.Position;
             _shipBroken.transform.rotation = _ship.Rotation;
 
-            foreach (var rigidBody in _shipBroken.GetComponentsInChildren<Rigidbody>())
+            foreach (Rigidbody rigidBody in _shipBroken.GetComponentsInChildren<Rigidbody>())
             {
-                var randomTheta = Random.Range(0, Mathf.PI * 2.0f);
-                var randomDir = new Vector3(Mathf.Cos(randomTheta), Mathf.Sin(randomTheta), 0);
+                float randomTheta = Random.Range(0, Mathf.PI * 2.0f);
+                Vector3 randomDir = new Vector3(Mathf.Cos(randomTheta), Mathf.Sin(randomTheta), 0);
                 rigidBody.AddForce(randomDir * _settings.explosionForce);
             }
 
             _signalBus.Fire<ShipCrashedSignal>();
         }
 
-        public override void Dispose()
-        {
-            _ship.MeshRenderer.enabled = true;
+        public override void Update() { }
 
-            _ship.ParticleEmitter.gameObject.SetActive(true);
-
-            GameObject.Destroy(_explosion);
-            GameObject.Destroy(_shipBroken);
-        }
-
-        public override void Update()
-        {
-        }
-
-        [Serializable]
-        public class Settings
-        {
-            public float explosionForce;
-        }
-
-        public class Factory : PlaceholderFactory<ShipStateDead>
-        {
-        }
+        #endregion
     }
 }

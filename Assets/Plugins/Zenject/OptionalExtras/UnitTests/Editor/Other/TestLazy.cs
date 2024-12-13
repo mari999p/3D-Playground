@@ -6,6 +6,82 @@ namespace Zenject.Tests.Bindings.Singletons
     [TestFixture]
     public class TestLazy : ZenjectUnitTestFixture
     {
+        #region Public Nested Types
+
+        public class Bar
+        {
+            #region Variables
+
+            public static int InstanceCount;
+
+            #endregion
+
+            #region Setup/Teardown
+
+            public Bar()
+            {
+                InstanceCount++;
+            }
+
+            #endregion
+
+            #region Public methods
+
+            public void DoIt() { }
+
+            #endregion
+        }
+
+        public class Foo
+        {
+            #region Variables
+
+            private readonly LazyInject<Bar> _bar;
+
+            #endregion
+
+            #region Setup/Teardown
+
+            public Foo(LazyInject<Bar> bar)
+            {
+                _bar = bar;
+            }
+
+            #endregion
+
+            #region Public methods
+
+            public void DoIt()
+            {
+                _bar.Value.DoIt();
+            }
+
+            #endregion
+        }
+
+        public class Qux
+        {
+            #region Variables
+
+            [Inject(Optional = true)]
+            public LazyInject<Bar> Bar;
+
+            #endregion
+        }
+
+        public class Gorp
+        {
+            #region Variables
+
+            public LazyInject<Bar> Bar;
+
+            #endregion
+        }
+
+        #endregion
+
+        #region Public methods
+
         [Test]
         public void Test1()
         {
@@ -14,7 +90,7 @@ namespace Zenject.Tests.Bindings.Singletons
             Container.Bind<Bar>().AsSingle();
             Container.Bind<Foo>().AsSingle();
 
-            var foo = Container.Resolve<Foo>();
+            Foo foo = Container.Resolve<Foo>();
 
             Assert.IsEqual(Bar.InstanceCount, 0);
 
@@ -45,50 +121,11 @@ namespace Zenject.Tests.Bindings.Singletons
         {
             Container.Bind<Gorp>().AsSingle();
 
-            var gorp = Container.Resolve<Gorp>();
+            Gorp gorp = Container.Resolve<Gorp>();
             object temp;
             Assert.Throws(() => temp = gorp.Bar.Value);
         }
 
-        public class Bar
-        {
-            public static int InstanceCount;
-
-            public Bar()
-            {
-                InstanceCount++;
-            }
-
-            public void DoIt()
-            {
-            }
-        }
-
-        public class Foo
-        {
-            readonly LazyInject<Bar> _bar;
-
-            public Foo(LazyInject<Bar> bar)
-            {
-                _bar = bar;
-            }
-
-            public void DoIt()
-            {
-                _bar.Value.DoIt();
-            }
-        }
-
-        public class Qux
-        {
-            [Inject(Optional = true)]
-            public LazyInject<Bar> Bar;
-        }
-
-        public class Gorp
-        {
-            public LazyInject<Bar> Bar;
-        }
+        #endregion
     }
 }
-

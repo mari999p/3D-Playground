@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using ModestTree;
 using UnityEngine;
@@ -8,6 +9,134 @@ namespace Zenject
 {
     public class CheatSheet : Installer<CheatSheet>
     {
+        #region Public Nested Types
+
+        // Then when we inject these dependencies we have to use the same ID:
+        public class Norf
+        {
+            #region Variables
+
+            [Inject(Id = "FooA")]
+            public string Foo;
+
+            #endregion
+        }
+
+        public class Qux
+        {
+            #region Variables
+
+            [Inject(Id = "FooB")]
+            public string Foo;
+
+            #endregion
+        }
+
+        // When an ID is unspecified in an [Inject] field, it will use the first
+        // instance
+        // Bindings without IDs can therefore be used as a default and we can
+        // specify IDs for specific versions of the same type
+        public class Norf2
+        {
+            #region Variables
+
+            [Inject]
+            public Foo Foo;
+
+            #endregion
+        }
+
+        // Qux2._foo will be the same instance as Norf2._foo
+        // This is because we are using AsCached rather than AsTransient
+        public class Qux2
+        {
+            #region Variables
+
+            [Inject]
+            public Foo Foo;
+
+            [Inject(Id = "FooA")]
+            public Foo Foo2;
+
+            #endregion
+        }
+
+        public class FooInstaller : Installer<FooInstaller>
+        {
+            #region Setup/Teardown
+
+            public FooInstaller(string foo) { }
+
+            #endregion
+
+            #region Public methods
+
+            public override void InstallBindings() { }
+
+            #endregion
+        }
+
+        public class FooInstallerWithArgs : Installer<string, FooInstallerWithArgs>
+        {
+            #region Setup/Teardown
+
+            public FooInstallerWithArgs(string foo) { }
+
+            #endregion
+
+            #region Public methods
+
+            public override void InstallBindings() { }
+
+            #endregion
+        }
+
+        public interface IFoo2 { }
+
+        public interface IFoo { }
+
+        public interface IBar : IFoo { }
+
+        public class Foo : MonoBehaviour, IFoo, IFoo2, IBar
+        {
+            #region Public methods
+
+            public Bar GetBar()
+            {
+                return new Bar();
+            }
+
+            public string GetTitle()
+            {
+                return "title";
+            }
+
+            #endregion
+        }
+
+        public class Foo1 : IFoo { }
+
+        public class Foo2 : IFoo { }
+
+        public class Foo3 : IFoo { }
+
+        public class Baz { }
+
+        public class Gui { }
+
+        public class Bar : IBar
+        {
+            #region Properties
+
+            public Foo Foo => null;
+
+            #endregion
+        }
+
+        #endregion
+
+        #region Public methods
+
         public override void InstallBindings()
         {
             // Create a new instance of Foo for every class that asks for it
@@ -90,12 +219,110 @@ namespace Zenject
             InstallMore();
         }
 
-        Foo GetFoo(InjectContext ctx)
+        public void InstallMore2()
+        {
+            ///////////// AsCached
+
+            // In this example, we bind three instances of Foo, including one without an ID
+            // We have to use AsCached here because Foo is not a singleton, but we also
+            // do not want a new Foo created every time like AsTransient
+            // This will result in a maximum of 3 instances of Foo
+            Container.Bind<Foo>().AsCached();
+            Container.Bind<Foo>().WithId("FooA").AsCached();
+            Container.Bind<Foo>().WithId("FooA").AsCached();
+
+            InstallMore3();
+        }
+
+        public void InstallMore3()
+        {
+            ///////////// Conditions
+
+            // This will make Foo only visible to Bar
+            // If we add Foo to the constructor of any other class it won't find it
+            Container.Bind<Foo>().AsSingle().WhenInjectedInto<Bar>();
+
+            // Use different implementations of IFoo dependending on which
+            // class is being injected
+            Container.Bind<IFoo>().To<Foo1>().AsSingle().WhenInjectedInto<Bar>();
+            Container.Bind<IFoo>().To<Foo2>().AsSingle().WhenInjectedInto<Qux>();
+
+            // Use "Foo1" as the default implementation except when injecting into
+            // class Qux, in which case use Foo2
+            // This works because if there is a condition match, that takes precedence
+            Container.Bind<IFoo>().To<Foo1>().AsSingle();
+            Container.Bind<IFoo>().To<Foo2>().AsSingle().WhenInjectedInto<Qux>();
+
+            // Allow depending on Foo in only a few select classes
+            Container.Bind<Foo>().AsSingle().WhenInjectedInto(typeof(Bar), typeof(Qux), typeof(Baz));
+
+            // Supply "my game" for any strings that are injected into the Gui class with the identifier "Title"
+            Container.BindInstance("my game").WithId("Title").WhenInjectedInto<Gui>();
+
+            // Supply 5 for all ints that are injected into the Gui class
+            Container.BindInstance(5).WhenInjectedInto<Gui>();
+
+            // Supply 5 for all ints that are injected into a parameter or field
+            // inside type Gui that is named 'width'
+            // Note that this is usually not a good idea since the name of a field can change
+            // easily and break the binding but shown here as an example of a more complex
+            // condition
+            Container.BindInstance(5.0f).When(ctx =>
+                ctx.ObjectType == typeof(Gui) && ctx.MemberName == "width");
+
+            // Create a new 'Foo' for every class that is created as part of the
+            // construction of the 'Bar' class
+            // So if Bar has a constructor parameter of type Qux, and Qux has
+            // a constructor parameter of type IFoo, a new Foo will be created
+            // for that case
+            Container.Bind<IFoo>().To<Foo>().AsTransient().When(
+                ctx => ctx.AllObjectTypes.Contains(typeof(Bar)));
+
+            ///////////// Complex conditions example
+
+            Foo foo1 = new Foo();
+            Foo foo2 = new Foo();
+
+            Container.Bind<Bar>().WithId("Bar1").AsCached();
+            Container.Bind<Bar>().WithId("Bar2").AsCached();
+
+            // Here we use the 'ParentContexts' property of inject context to sync multiple corresponding identifiers
+            Container.BindInstance(foo1).When(c =>
+                c.ParentContexts.Where(x => x.MemberType == typeof(Bar) && Equals(x.Identifier, "Bar1")).Any());
+            Container.BindInstance(foo2).When(c =>
+                c.ParentContexts.Where(x => x.MemberType == typeof(Bar) && Equals(x.Identifier, "Bar2")).Any());
+
+            // This results in:
+            Assert.That(Container.ResolveId<Bar>("Bar1").Foo == foo1);
+            Assert.That(Container.ResolveId<Bar>("Bar2").Foo == foo2);
+
+            ///////////// FromResolve
+
+            // FromResolve does another lookup on the container
+            // This will result in IBar, IFoo, and Foo, all being bound to the same instance of
+            // Foo which is assume to exist somewhere on the given prefab
+            GameObject fooPrefab = null;
+            Container.Bind<Foo>().FromComponentInNewPrefab(fooPrefab).AsSingle();
+            Container.Bind<IBar>().To<Foo>().FromResolve();
+            Container.Bind<IFoo>().To<IBar>().FromResolve();
+
+            // This will result in the same behaviour as the above
+            Container.Bind(typeof(Foo), typeof(IBar), typeof(IFoo)).To<Foo>().FromComponentInNewPrefab(fooPrefab)
+                .AsSingle();
+
+            InstallMore4();
+        }
+
+        #endregion
+
+        #region Private methods
+
+        private Foo GetFoo(InjectContext ctx)
         {
             return new Foo();
         }
 
-        IFoo GetRandomFoo(InjectContext ctx)
+        private IFoo GetRandomFoo(InjectContext ctx)
         {
             switch (Random.Range(0, 3))
             {
@@ -112,7 +339,7 @@ namespace Zenject
             return ctx.Container.Instantiate<Foo3>();
         }
 
-        void InstallMore()
+        private void InstallMore()
         {
             ///////////// FromResolveGetter
 
@@ -180,154 +407,7 @@ namespace Zenject
             InstallMore2();
         }
 
-        // Then when we inject these dependencies we have to use the same ID:
-        public class Norf
-        {
-            [Inject(Id = "FooA")]
-            public string Foo;
-        }
-
-        public class Qux
-        {
-            [Inject(Id = "FooB")]
-            public string Foo;
-        }
-
-        public void InstallMore2()
-        {
-            ///////////// AsCached
-
-            // In this example, we bind three instances of Foo, including one without an ID
-            // We have to use AsCached here because Foo is not a singleton, but we also
-            // do not want a new Foo created every time like AsTransient
-            // This will result in a maximum of 3 instances of Foo
-            Container.Bind<Foo>().AsCached();
-            Container.Bind<Foo>().WithId("FooA").AsCached();
-            Container.Bind<Foo>().WithId("FooA").AsCached();
-
-            InstallMore3();
-        }
-
-        // When an ID is unspecified in an [Inject] field, it will use the first
-        // instance
-        // Bindings without IDs can therefore be used as a default and we can
-        // specify IDs for specific versions of the same type
-        public class Norf2
-        {
-            [Inject]
-            public Foo Foo;
-        }
-
-        // Qux2._foo will be the same instance as Norf2._foo
-        // This is because we are using AsCached rather than AsTransient
-        public class Qux2
-        {
-            [Inject]
-            public Foo Foo;
-
-            [Inject(Id = "FooA")]
-            public Foo Foo2;
-        }
-
-        public void InstallMore3()
-        {
-            ///////////// Conditions
-
-            // This will make Foo only visible to Bar
-            // If we add Foo to the constructor of any other class it won't find it
-            Container.Bind<Foo>().AsSingle().WhenInjectedInto<Bar>();
-
-            // Use different implementations of IFoo dependending on which
-            // class is being injected
-            Container.Bind<IFoo>().To<Foo1>().AsSingle().WhenInjectedInto<Bar>();
-            Container.Bind<IFoo>().To<Foo2>().AsSingle().WhenInjectedInto<Qux>();
-
-            // Use "Foo1" as the default implementation except when injecting into
-            // class Qux, in which case use Foo2
-            // This works because if there is a condition match, that takes precedence
-            Container.Bind<IFoo>().To<Foo1>().AsSingle();
-            Container.Bind<IFoo>().To<Foo2>().AsSingle().WhenInjectedInto<Qux>();
-
-            // Allow depending on Foo in only a few select classes
-            Container.Bind<Foo>().AsSingle().WhenInjectedInto(typeof(Bar), typeof(Qux), typeof(Baz));
-
-            // Supply "my game" for any strings that are injected into the Gui class with the identifier "Title"
-            Container.BindInstance("my game").WithId("Title").WhenInjectedInto<Gui>();
-
-            // Supply 5 for all ints that are injected into the Gui class
-            Container.BindInstance(5).WhenInjectedInto<Gui>();
-
-            // Supply 5 for all ints that are injected into a parameter or field
-            // inside type Gui that is named 'width'
-            // Note that this is usually not a good idea since the name of a field can change
-            // easily and break the binding but shown here as an example of a more complex
-            // condition
-            Container.BindInstance(5.0f).When(ctx =>
-                ctx.ObjectType == typeof(Gui) && ctx.MemberName == "width");
-
-            // Create a new 'Foo' for every class that is created as part of the
-            // construction of the 'Bar' class
-            // So if Bar has a constructor parameter of type Qux, and Qux has
-            // a constructor parameter of type IFoo, a new Foo will be created
-            // for that case
-            Container.Bind<IFoo>().To<Foo>().AsTransient().When(
-                ctx => ctx.AllObjectTypes.Contains(typeof(Bar)));
-
-            ///////////// Complex conditions example
-
-            var foo1 = new Foo();
-            var foo2 = new Foo();
-
-            Container.Bind<Bar>().WithId("Bar1").AsCached();
-            Container.Bind<Bar>().WithId("Bar2").AsCached();
-
-            // Here we use the 'ParentContexts' property of inject context to sync multiple corresponding identifiers
-            Container.BindInstance(foo1).When(c => c.ParentContexts.Where(x => x.MemberType == typeof(Bar) && Equals(x.Identifier, "Bar1")).Any());
-            Container.BindInstance(foo2).When(c => c.ParentContexts.Where(x => x.MemberType == typeof(Bar) && Equals(x.Identifier, "Bar2")).Any());
-
-            // This results in:
-            Assert.That(Container.ResolveId<Bar>("Bar1").Foo == foo1);
-            Assert.That(Container.ResolveId<Bar>("Bar2").Foo == foo2);
-
-            ///////////// FromResolve
-
-            // FromResolve does another lookup on the container
-            // This will result in IBar, IFoo, and Foo, all being bound to the same instance of
-            // Foo which is assume to exist somewhere on the given prefab
-            GameObject fooPrefab = null;
-            Container.Bind<Foo>().FromComponentInNewPrefab(fooPrefab).AsSingle();
-            Container.Bind<IBar>().To<Foo>().FromResolve();
-            Container.Bind<IFoo>().To<IBar>().FromResolve();
-
-            // This will result in the same behaviour as the above
-            Container.Bind(typeof(Foo), typeof(IBar), typeof(IFoo)).To<Foo>().FromComponentInNewPrefab(fooPrefab).AsSingle();
-
-            InstallMore4();
-        }
-
-        public class FooInstaller : Installer<FooInstaller>
-        {
-            public FooInstaller(string foo)
-            {
-            }
-
-            public override void InstallBindings()
-            {
-            }
-        }
-
-        public class FooInstallerWithArgs : Installer<string, FooInstallerWithArgs>
-        {
-            public FooInstallerWithArgs(string foo)
-            {
-            }
-
-            public override void InstallBindings()
-            {
-            }
-        }
-
-        void InstallMore4()
+        private void InstallMore4()
         {
             ///////////// Installing Other Installers
 
@@ -345,7 +425,7 @@ namespace Zenject
             ///////////// Manual Use of Container
 
             // This will fill in any parameters marked as [Inject] and also call any [Inject] methods
-            var foo = new Foo();
+            Foo foo = new Foo();
             Container.Inject(foo);
 
             // Return an instance for IFoo, using the bindings that have been added previously
@@ -360,7 +440,7 @@ namespace Zenject
             // Note that in this case simply calling Resolve<IFoo> will trigger an exception
             Container.BindInstance(new Foo());
             Container.BindInstance(new Foo());
-            var foos = Container.ResolveAll<IFoo>();
+            List<IFoo> foos = Container.ResolveAll<IFoo>();
 
             // Create a new instance of Foo and inject on any of its members
             // And fill in any constructor parameters Foo might have
@@ -379,60 +459,6 @@ namespace Zenject
             Foo foo3 = Container.InstantiateComponent<Foo>(go);
         }
 
-        public interface IFoo2
-        {
-        }
-
-        public interface IFoo
-        {
-        }
-
-        public interface IBar : IFoo
-        {
-        }
-
-        public class Foo : MonoBehaviour, IFoo, IFoo2, IBar
-        {
-            public Bar GetBar()
-            {
-                return new Bar();
-            }
-
-            public string GetTitle()
-            {
-                return "title";
-            }
-        }
-
-        public class Foo1 : IFoo
-        {
-        }
-
-        public class Foo2 : IFoo
-        {
-        }
-
-        public class Foo3 : IFoo
-        {
-        }
-
-        public class Baz
-        {
-        }
-
-        public class Gui
-        {
-        }
-
-        public class Bar : IBar
-        {
-            public Foo Foo
-            {
-                get
-                {
-                    return null;
-                }
-            }
-        }
+        #endregion
     }
 }

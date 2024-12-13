@@ -8,14 +8,14 @@ namespace Zenject
     [NoReflectionBaking]
     public class BindStatement : IDisposable
     {
-        readonly List<IDisposable> _disposables;
-        IBindingFinalizer _bindingFinalizer;
+        #region Variables
 
-        public BindStatement()
-        {
-            _disposables = new List<IDisposable>();
-            Reset();
-        }
+        private readonly List<IDisposable> _disposables;
+        private IBindingFinalizer _bindingFinalizer;
+
+        #endregion
+
+        #region Properties
 
         public BindingInheritanceMethods BindingInheritanceMethod
         {
@@ -26,35 +26,34 @@ namespace Zenject
             }
         }
 
-        public bool HasFinalizer
+        public bool HasFinalizer => _bindingFinalizer != null;
+
+        #endregion
+
+        #region Setup/Teardown
+
+        public BindStatement()
         {
-            get { return _bindingFinalizer != null; }
+            _disposables = new List<IDisposable>();
+            Reset();
         }
 
-        public void SetFinalizer(IBindingFinalizer bindingFinalizer)
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
         {
-            _bindingFinalizer = bindingFinalizer;
+            ZenPools.DespawnStatement(this);
         }
 
-        void AssertHasFinalizer()
-        {
-            if (_bindingFinalizer == null)
-            {
-                throw Assert.CreateException(
-                    "Unfinished binding!  Some required information was left unspecified.");
-            }
-        }
+        #endregion
+
+        #region Public methods
 
         public void AddDisposable(IDisposable disposable)
         {
             _disposables.Add(disposable);
-        }
-
-        public BindInfo SpawnBindInfo()
-        {
-            var bindInfo = ZenPools.SpawnBindInfo();
-            AddDisposable(bindInfo);
-            return bindInfo;
         }
 
         public void FinalizeBinding(DiContainer container)
@@ -75,9 +74,31 @@ namespace Zenject
             _disposables.Clear();
         }
 
-        public void Dispose()
+        public void SetFinalizer(IBindingFinalizer bindingFinalizer)
         {
-            ZenPools.DespawnStatement(this);
+            _bindingFinalizer = bindingFinalizer;
         }
+
+        public BindInfo SpawnBindInfo()
+        {
+            BindInfo bindInfo = ZenPools.SpawnBindInfo();
+            AddDisposable(bindInfo);
+            return bindInfo;
+        }
+
+        #endregion
+
+        #region Private methods
+
+        private void AssertHasFinalizer()
+        {
+            if (_bindingFinalizer == null)
+            {
+                throw Assert.CreateException(
+                    "Unfinished binding!  Some required information was left unspecified.");
+            }
+        }
+
+        #endregion
     }
 }

@@ -12,29 +12,15 @@ namespace Zenject.Internal
 {
     public static class ZenUtilInternal
     {
-#if UNITY_EDITOR
-        static GameObject _disabledIndestructibleGameObject;
-#endif
-
-        // Due to the way that Unity overrides the Equals operator,
-        // normal null checks such as (x == null) do not always work as
-        // expected
-        // In those cases you can use this function which will also
-        // work with non-unity objects
-        public static bool IsNull(System.Object obj)
-        {
-            return obj == null || obj.Equals(null);
-        }
+        #region Variables
 
 #if UNITY_EDITOR
-        // This can be useful if you are running code outside unity
-        // since in that case you have to make sure to avoid calling anything
-        // inside Unity DLLs
-        public static bool IsOutsideUnity()
-        {
-            return AppDomain.CurrentDomain.FriendlyName != "Unity Child Domain";
-        }
+        private static GameObject _disabledIndestructibleGameObject;
 #endif
+
+        #endregion
+
+        #region Public methods
 
         public static bool AreFunctionsEqual(Delegate left, Delegate right)
         {
@@ -70,12 +56,34 @@ namespace Zenject.Internal
             return distance;
         }
 
+        // Due to the way that Unity overrides the Equals operator,
+        // normal null checks such as (x == null) do not always work as
+        // expected
+        // In those cases you can use this function which will also
+        // work with non-unity objects
+        public static bool IsNull(object obj)
+        {
+            return obj == null || obj.Equals(null);
+        }
+
+#if UNITY_EDITOR
+        // This can be useful if you are running code outside unity
+        // since in that case you have to make sure to avoid calling anything
+        // inside Unity DLLs
+        public static bool IsOutsideUnity()
+        {
+            return AppDomain.CurrentDomain.FriendlyName != "Unity Child Domain";
+        }
+#endif
+
+        #endregion
+
 #if !NOT_UNITY3D
         public static IEnumerable<SceneContext> GetAllSceneContexts()
         {
-            foreach (var scene in UnityUtil.AllLoadedScenes)
+            foreach (Scene scene in UnityUtil.AllLoadedScenes)
             {
-                var contexts = scene.GetRootGameObjects()
+                List<SceneContext> contexts = scene.GetRootGameObjects()
                     .SelectMany(root => root.GetComponentsInChildren<SceneContext>()).ToList();
 
                 if (contexts.IsEmpty())
@@ -92,7 +100,7 @@ namespace Zenject.Internal
 
         public static void AddStateMachineBehaviourAutoInjectersInScene(Scene scene)
         {
-            foreach (var rootObj in GetRootGameObjects(scene))
+            foreach (GameObject rootObj in GetRootGameObjects(scene))
             {
                 if (rootObj != null)
                 {
@@ -112,9 +120,9 @@ namespace Zenject.Internal
             using (ProfileTimers.CreateTimedBlock("Searching Hierarchy"))
 #endif
             {
-                var animators = root.GetComponentsInChildren<Animator>(true);
+                Animator[] animators = root.GetComponentsInChildren<Animator>(true);
 
-                foreach (var animator in animators)
+                foreach (Animator animator in animators)
                 {
                     if (animator.gameObject.GetComponent<ZenjectStateMachineBehaviourAutoInjecter>() == null)
                     {
@@ -131,7 +139,7 @@ namespace Zenject.Internal
             using (ProfileTimers.CreateTimedBlock("Searching Hierarchy"))
 #endif
             {
-                foreach (var rootObj in GetRootGameObjects(scene))
+                foreach (GameObject rootObj in GetRootGameObjects(scene))
                 {
                     if (rootObj != null)
                     {
@@ -154,7 +162,7 @@ namespace Zenject.Internal
             }
         }
 
-        static void GetInjectableMonoBehavioursUnderGameObjectInternal(
+        private static void GetInjectableMonoBehavioursUnderGameObjectInternal(
             GameObject gameObject, List<MonoBehaviour> injectableComponents)
         {
             if (gameObject == null)
@@ -162,15 +170,15 @@ namespace Zenject.Internal
                 return;
             }
 
-            var monoBehaviours = gameObject.GetComponents<MonoBehaviour>();
+            MonoBehaviour[] monoBehaviours = gameObject.GetComponents<MonoBehaviour>();
 
             for (int i = 0; i < monoBehaviours.Length; i++)
             {
-                var monoBehaviour = monoBehaviours[i];
+                MonoBehaviour monoBehaviour = monoBehaviours[i];
 
                 // Can be null for broken component references
                 if (monoBehaviour != null
-                        && monoBehaviour.GetType().DerivesFromOrEqual<GameObjectContext>())
+                    && monoBehaviour.GetType().DerivesFromOrEqual<GameObjectContext>())
                 {
                     // Need to make sure we don't inject on any MonoBehaviour's that are below a GameObjectContext
                     // Since that is the responsibility of the GameObjectContext
@@ -184,7 +192,7 @@ namespace Zenject.Internal
             // because it should always inject in the dependency order
             for (int i = 0; i < gameObject.transform.childCount; i++)
             {
-                var child = gameObject.transform.GetChild(i);
+                Transform child = gameObject.transform.GetChild(i);
 
                 if (child != null)
                 {
@@ -194,7 +202,7 @@ namespace Zenject.Internal
 
             for (int i = 0; i < monoBehaviours.Length; i++)
             {
-                var monoBehaviour = monoBehaviours[i];
+                MonoBehaviour monoBehaviour = monoBehaviours[i];
 
                 // Can be null for broken component references
                 if (monoBehaviour != null
@@ -238,8 +246,8 @@ namespace Zenject.Internal
                 // We also make sure not to inject into the project root objects which are injected by ProjectContext.
                 return Resources.FindObjectsOfTypeAll<GameObject>()
                     .Where(x => x.transform.parent == null
-                            && x.GetComponent<ProjectContext>() == null
-                            && x.scene == scene);
+                                && x.GetComponent<ProjectContext>() == null
+                                && x.scene == scene);
             }
         }
 
@@ -249,13 +257,15 @@ namespace Zenject.Internal
         // without any of their Awake() methods firing.
         public static Transform GetOrCreateInactivePrefabParent()
         {
-            if(_disabledIndestructibleGameObject == null || (!Application.isPlaying && _disabledIndestructibleGameObject.scene != SceneManager.GetActiveScene()))
+            if (_disabledIndestructibleGameObject == null || (!Application.isPlaying &&
+                                                              _disabledIndestructibleGameObject.scene !=
+                                                              SceneManager.GetActiveScene()))
             {
-                var go = new GameObject("ZenUtilInternal_PrefabParent");
+                GameObject go = new GameObject("ZenUtilInternal_PrefabParent");
                 go.hideFlags = HideFlags.HideAndDontSave;
                 go.SetActive(false);
 
-                if(Application.isPlaying)
+                if (Application.isPlaying)
                 {
                     UnityEngine.Object.DontDestroyOnLoad(go);
                 }

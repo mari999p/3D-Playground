@@ -8,57 +8,38 @@ namespace Zenject
     [NoReflectionBaking]
     public class GameObjectCreationParameters
     {
-        public string Name
+        #region Variables
+
+        public static readonly GameObjectCreationParameters Default = new();
+
+        #endregion
+
+        #region Properties
+
+        public string GroupName { get; set; }
+        public string Name { get; set; }
+
+        public Transform ParentTransform { get; set; }
+
+        public Func<InjectContext, Transform> ParentTransformGetter { get; set; }
+
+        public Vector3? Position { get; set; }
+
+        public Quaternion? Rotation { get; set; }
+
+        #endregion
+
+        #region Public methods
+
+        public static bool operator ==(GameObjectCreationParameters left, GameObjectCreationParameters right)
         {
-            get;
-            set;
+            return Equals(left.Name, right.Name)
+                   && Equals(left.GroupName, right.GroupName);
         }
 
-        public string GroupName
+        public static bool operator !=(GameObjectCreationParameters left, GameObjectCreationParameters right)
         {
-            get;
-            set;
-        }
-
-        public Transform ParentTransform
-        {
-            get;
-            set;
-        }
-
-        public Func<InjectContext, Transform> ParentTransformGetter
-        {
-            get;
-            set;
-        }
-
-        public Vector3? Position
-        {
-            get;
-            set;
-        }
-
-        public Quaternion? Rotation
-        {
-            get;
-            set;
-        }
-
-        public static readonly GameObjectCreationParameters Default = new GameObjectCreationParameters();
-
-        public override int GetHashCode()
-        {
-            unchecked // Overflow is fine, just wrap
-            {
-                int hash = 17;
-                hash = hash * 29 + (Name == null ? 0 : Name.GetHashCode());
-                hash = hash * 29 + (GroupName == null ? 0 : GroupName.GetHashCode());
-                hash = hash * 29 + (ParentTransform == null ? 0 : ParentTransform.GetHashCode());
-                hash = hash * 29 + (ParentTransformGetter == null ? 0 : ParentTransformGetter.GetHashCode());
-                hash = hash * 29 + (!Position.HasValue ? 0 : Position.Value.GetHashCode());
-                hash = hash * 29 + (!Rotation.HasValue ? 0 : Rotation.Value.GetHashCode());
-                return hash;
-            }
+            return !left.Equals(right);
         }
 
         public override bool Equals(object other)
@@ -77,16 +58,22 @@ namespace Zenject
             return this == that;
         }
 
-        public static bool operator ==(GameObjectCreationParameters left, GameObjectCreationParameters right)
+        public override int GetHashCode()
         {
-            return Equals(left.Name, right.Name)
-                && Equals(left.GroupName, right.GroupName);
+            unchecked // Overflow is fine, just wrap
+            {
+                int hash = 17;
+                hash = hash * 29 + (Name == null ? 0 : Name.GetHashCode());
+                hash = hash * 29 + (GroupName == null ? 0 : GroupName.GetHashCode());
+                hash = hash * 29 + (ParentTransform == null ? 0 : ParentTransform.GetHashCode());
+                hash = hash * 29 + (ParentTransformGetter == null ? 0 : ParentTransformGetter.GetHashCode());
+                hash = hash * 29 + (!Position.HasValue ? 0 : Position.Value.GetHashCode());
+                hash = hash * 29 + (!Rotation.HasValue ? 0 : Rotation.Value.GetHashCode());
+                return hash;
+            }
         }
 
-        public static bool operator !=(GameObjectCreationParameters left, GameObjectCreationParameters right)
-        {
-            return !left.Equals(right);
-        }
+        #endregion
     }
 }
 

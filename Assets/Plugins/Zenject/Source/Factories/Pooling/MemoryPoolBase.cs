@@ -7,18 +7,27 @@ namespace Zenject
     [NoReflectionBaking]
     public class PoolExceededFixedSizeException : Exception
     {
+        #region Setup/Teardown
+
         public PoolExceededFixedSizeException(string errorMessage)
-            : base(errorMessage)
-        {
-        }
+            : base(errorMessage) { }
+
+        #endregion
     }
 
     [Serializable]
     public class MemoryPoolSettings
     {
+        #region Variables
+
+        public static readonly MemoryPoolSettings Default = new();
+        public PoolExpandMethods ExpandMethod;
         public int InitialSize;
         public int MaxSize;
-        public PoolExpandMethods ExpandMethod;
+
+        #endregion
+
+        #region Setup/Teardown
 
         public MemoryPoolSettings()
         {
@@ -34,25 +43,45 @@ namespace Zenject
             ExpandMethod = expandMethod;
         }
 
-        public static readonly MemoryPoolSettings Default = new MemoryPoolSettings();
+        #endregion
     }
 
     [ZenjectAllowDuringValidation]
     public class MemoryPoolBase<TContract> : IValidatable, IMemoryPool, IDisposable
     {
-        Stack<TContract> _inactiveItems;
-        IFactory<TContract> _factory;
-        MemoryPoolSettings _settings;
-        DiContainer _container;
+        #region Variables
 
-        int _activeCount;
+        private int _activeCount;
+        private DiContainer _container;
+        private IFactory<TContract> _factory;
+        private Stack<TContract> _inactiveItems;
+        private MemoryPoolSettings _settings;
+
+        #endregion
+
+        #region Properties
+
+        public IEnumerable<TContract> InactiveItems => _inactiveItems;
+
+        public Type ItemType => typeof(TContract);
+
+        public int NumActive => _activeCount;
+
+        public int NumInactive => _inactiveItems.Count;
+
+        public int NumTotal => NumInactive + NumActive;
+
+        protected DiContainer Container => _container;
+
+        #endregion
+
+        #region Setup/Teardown
 
         [Inject]
-        void Construct(
+        private void Construct(
             IFactory<TContract> factory,
             DiContainer container,
-            [InjectOptional]
-            MemoryPoolSettings settings)
+            [InjectOptional] MemoryPoolSettings settings)
         {
             _settings = settings ?? MemoryPoolSettings.Default;
             _factory = factory;
@@ -73,35 +102,9 @@ namespace Zenject
 #endif
         }
 
-        protected DiContainer Container
-        {
-            get { return _container; }
-        }
+        #endregion
 
-        public IEnumerable<TContract> InactiveItems
-        {
-            get { return _inactiveItems; }
-        }
-
-        public int NumTotal
-        {
-            get { return NumInactive + NumActive; }
-        }
-
-        public int NumInactive
-        {
-            get { return _inactiveItems.Count; }
-        }
-
-        public int NumActive
-        {
-            get { return _activeCount; }
-        }
-
-        public Type ItemType
-        {
-            get { return typeof(TContract); }
-        }
+        #region IDisposable
 
         public void Dispose()
         {
@@ -110,10 +113,79 @@ namespace Zenject
 #endif
         }
 
+        #endregion
+
+        #region IMemoryPool
+
         void IMemoryPool.Despawn(object item)
         {
             Despawn((TContract)item);
         }
+
+        public void Clear()
+        {
+            Resize(0);
+        }
+
+        public void ShrinkBy(int numToRemove)
+        {
+            Resize(_inactiveItems.Count - numToRemove);
+        }
+
+        public void ExpandBy(int numToAdd)
+        {
+            Resize(_inactiveItems.Count + numToAdd);
+        }
+
+        public void Resize(int desiredPoolSize)
+        {
+            if (_inactiveItems.Count == desiredPoolSize)
+            {
+                return;
+            }
+
+            if (_settings.ExpandMethod == PoolExpandMethods.Disabled)
+            {
+                throw new PoolExceededFixedSizeException(
+                    "Pool factory '{0}' attempted resize but pool set to fixed size of '{1}'!"
+                        .Fmt(GetType(), _inactiveItems.Count));
+            }
+
+            Assert.That(desiredPoolSize >= 0, "Attempted to resize the pool to a negative amount");
+
+            while (_inactiveItems.Count > desiredPoolSize)
+            {
+                OnDestroyed(_inactiveItems.Pop());
+            }
+
+            while (desiredPoolSize > _inactiveItems.Count)
+            {
+                _inactiveItems.Push(AllocNew());
+            }
+
+            Assert.IsEqual(_inactiveItems.Count, desiredPoolSize);
+        }
+
+        #endregion
+
+        #region IValidatable
+
+        void IValidatable.Validate()
+        {
+            try
+            {
+                _factory.Create();
+            }
+            catch (Exception e)
+            {
+                throw new ZenjectException(
+                    "Validation for factory '{0}' failed".Fmt(GetType()), e);
+            }
+        }
+
+        #endregion
+
+        #region Public methods
 
         public void Despawn(TContract item)
         {
@@ -140,15 +212,58 @@ namespace Zenject
             }
         }
 
-        TContract AllocNew()
+        #endregion
+
+        #region Protected methods
+
+        protected TContract GetInternal()
+        {
+            if (_inactiveItems.Count == 0)
+            {
+                ExpandPool();
+                Assert.That(!_inactiveItems.IsEmpty());
+            }
+
+            TContract item = _inactiveItems.Pop();
+            _activeCount++;
+            OnSpawned(item);
+            return item;
+        }
+
+        protected virtual void OnCreated(TContract item)
+        {
+            // Optional
+        }
+
+        protected virtual void OnDespawned(TContract item)
+        {
+            // Optional
+        }
+
+        protected virtual void OnDestroyed(TContract item)
+        {
+            // Optional
+        }
+
+        protected virtual void OnSpawned(TContract item)
+        {
+            // Optional
+        }
+
+        #endregion
+
+        #region Private methods
+
+        private TContract AllocNew()
         {
             try
             {
-                var item = _factory.Create();
+                TContract item = _factory.Create();
 
                 if (!_container.IsValidating)
                 {
-                    Assert.IsNotNull(item, "Factory '{0}' returned null value when creating via {1}!", _factory.GetType(), GetType());
+                    Assert.IsNotNull(item, "Factory '{0}' returned null value when creating via {1}!",
+                        _factory.GetType(), GetType());
                     OnCreated(item);
                 }
 
@@ -162,78 +277,7 @@ namespace Zenject
             }
         }
 
-        void IValidatable.Validate()
-        {
-            try
-            {
-                _factory.Create();
-            }
-            catch (Exception e)
-            {
-                throw new ZenjectException(
-                    "Validation for factory '{0}' failed".Fmt(GetType()), e);
-            }
-        }
-
-        public void Clear()
-        {
-            Resize(0);
-        }
-
-        public void ShrinkBy(int numToRemove)
-        {
-            Resize(_inactiveItems.Count - numToRemove);
-        }
-
-        public void ExpandBy(int numToAdd)
-        {
-            Resize(_inactiveItems.Count + numToAdd);
-        }
-
-        protected TContract GetInternal()
-        {
-            if (_inactiveItems.Count == 0)
-            {
-                ExpandPool();
-                Assert.That(!_inactiveItems.IsEmpty());
-            }
-
-            var item = _inactiveItems.Pop();
-            _activeCount++;
-            OnSpawned(item);
-            return item;
-        }
-
-        public void Resize(int desiredPoolSize)
-        {
-            if (_inactiveItems.Count == desiredPoolSize)
-            {
-                return;
-            }
-
-            if (_settings.ExpandMethod == PoolExpandMethods.Disabled)
-            {
-                throw new PoolExceededFixedSizeException(
-                    "Pool factory '{0}' attempted resize but pool set to fixed size of '{1}'!"
-                    .Fmt(GetType(), _inactiveItems.Count));
-            }
-
-            Assert.That(desiredPoolSize >= 0, "Attempted to resize the pool to a negative amount");
-
-            while (_inactiveItems.Count > desiredPoolSize)
-            {
-                OnDestroyed(_inactiveItems.Pop());
-            }
-
-            while (desiredPoolSize > _inactiveItems.Count)
-            {
-                _inactiveItems.Push(AllocNew());
-            }
-
-            Assert.IsEqual(_inactiveItems.Count, desiredPoolSize);
-        }
-
-        void ExpandPool()
+        private void ExpandPool()
         {
             switch (_settings.ExpandMethod)
             {
@@ -241,7 +285,7 @@ namespace Zenject
                 {
                     throw new PoolExceededFixedSizeException(
                         "Pool factory '{0}' exceeded its fixed size of '{1}'!"
-                        .Fmt(GetType(), _inactiveItems.Count));
+                            .Fmt(GetType(), _inactiveItems.Count));
                 }
                 case PoolExpandMethods.OneAtATime:
                 {
@@ -258,6 +302,7 @@ namespace Zenject
                     {
                         ExpandBy(NumTotal);
                     }
+
                     break;
                 }
                 default:
@@ -267,24 +312,6 @@ namespace Zenject
             }
         }
 
-        protected virtual void OnDespawned(TContract item)
-        {
-            // Optional
-        }
-
-        protected virtual void OnSpawned(TContract item)
-        {
-            // Optional
-        }
-
-        protected virtual void OnCreated(TContract item)
-        {
-            // Optional
-        }
-
-        protected virtual void OnDestroyed(TContract item)
-        {
-            // Optional
-        }
+        #endregion
     }
 }

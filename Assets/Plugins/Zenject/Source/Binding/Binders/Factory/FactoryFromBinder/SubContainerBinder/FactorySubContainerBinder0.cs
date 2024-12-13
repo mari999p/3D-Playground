@@ -1,5 +1,4 @@
 using System;
-using ModestTree;
 
 namespace Zenject
 {
@@ -7,18 +6,22 @@ namespace Zenject
     public class FactorySubContainerBinder<TContract>
         : FactorySubContainerBinderBase<TContract>
     {
+        #region Setup/Teardown
+
         public FactorySubContainerBinder(
             DiContainer bindContainer, BindInfo bindInfo, FactoryBindInfo factoryBindInfo, object subIdentifier)
-            : base(bindContainer, bindInfo, factoryBindInfo, subIdentifier)
-        {
-        }
+            : base(bindContainer, bindInfo, factoryBindInfo, subIdentifier) { }
+
+        #endregion
+
+        #region Public methods
 
         public ScopeConcreteIdArgConditionCopyNonLazyBinder ByMethod(Action<DiContainer> installerMethod)
         {
-            var subcontainerBindInfo = new SubContainerCreatorBindInfo();
+            SubContainerCreatorBindInfo subcontainerBindInfo = new();
 
             ProviderFunc =
-                (container) => new SubContainerDependencyProvider(
+                container => new SubContainerDependencyProvider(
                     ContractType, SubIdentifier,
                     new SubContainerCreatorByMethod(
                         container, subcontainerBindInfo, installerMethod), false);
@@ -26,14 +29,17 @@ namespace Zenject
             return new ScopeConcreteIdArgConditionCopyNonLazyBinder(BindInfo);
         }
 
+        #endregion
+
 #if !NOT_UNITY3D
 
-        public NameTransformScopeConcreteIdArgConditionCopyNonLazyBinder ByNewGameObjectMethod(Action<DiContainer> installerMethod)
+        public NameTransformScopeConcreteIdArgConditionCopyNonLazyBinder ByNewGameObjectMethod(
+            Action<DiContainer> installerMethod)
         {
-            var gameObjectInfo = new GameObjectCreationParameters();
+            GameObjectCreationParameters gameObjectInfo = new();
 
             ProviderFunc =
-                (container) => new SubContainerDependencyProvider(
+                container => new SubContainerDependencyProvider(
                     ContractType, SubIdentifier,
                     new SubContainerCreatorByNewGameObjectMethod(
                         container, gameObjectInfo, installerMethod), false);
@@ -44,10 +50,10 @@ namespace Zenject
         public NameTransformScopeConcreteIdArgConditionCopyNonLazyBinder ByNewPrefabMethod(
             Func<InjectContext, UnityEngine.Object> prefabGetter, Action<DiContainer> installerMethod)
         {
-            var gameObjectInfo = new GameObjectCreationParameters();
+            GameObjectCreationParameters gameObjectInfo = new();
 
             ProviderFunc =
-                (container) => new SubContainerDependencyProvider(
+                container => new SubContainerDependencyProvider(
                     ContractType, SubIdentifier,
                     new SubContainerCreatorByNewPrefabMethod(
                         container,
@@ -62,10 +68,10 @@ namespace Zenject
         {
             BindingUtil.AssertIsValidPrefab(prefab);
 
-            var gameObjectInfo = new GameObjectCreationParameters();
+            GameObjectCreationParameters gameObjectInfo = new();
 
             ProviderFunc =
-                (container) => new SubContainerDependencyProvider(
+                container => new SubContainerDependencyProvider(
                     ContractType, SubIdentifier,
                     new SubContainerCreatorByNewPrefabMethod(
                         container,
@@ -80,10 +86,10 @@ namespace Zenject
         {
             BindingUtil.AssertIsValidResourcePath(resourcePath);
 
-            var gameObjectInfo = new GameObjectCreationParameters();
+            GameObjectCreationParameters gameObjectInfo = new();
 
             ProviderFunc =
-                (container) => new SubContainerDependencyProvider(
+                container => new SubContainerDependencyProvider(
                     ContractType, SubIdentifier,
                     new SubContainerCreatorByNewPrefabMethod(
                         container,
@@ -93,7 +99,8 @@ namespace Zenject
             return new NameTransformScopeConcreteIdArgConditionCopyNonLazyBinder(BindInfo, gameObjectInfo);
         }
 
-        [System.Obsolete("ByNewPrefab has been renamed to ByNewContextPrefab to avoid confusion with ByNewPrefabInstaller and ByNewPrefabMethod")]
+        [Obsolete(
+            "ByNewPrefab has been renamed to ByNewContextPrefab to avoid confusion with ByNewPrefabInstaller and ByNewPrefabMethod")]
         public NameTransformScopeConcreteIdArgConditionCopyNonLazyBinder ByNewPrefab(UnityEngine.Object prefab)
         {
             return ByNewContextPrefab(prefab);
@@ -103,10 +110,10 @@ namespace Zenject
         {
             BindingUtil.AssertIsValidPrefab(prefab);
 
-            var gameObjectInfo = new GameObjectCreationParameters();
+            GameObjectCreationParameters gameObjectInfo = new();
 
             ProviderFunc =
-                (container) => new SubContainerDependencyProvider(
+                container => new SubContainerDependencyProvider(
                     ContractType, SubIdentifier,
                     new SubContainerCreatorByNewPrefab(
                         container,
@@ -116,7 +123,8 @@ namespace Zenject
             return new NameTransformScopeConcreteIdArgConditionCopyNonLazyBinder(BindInfo, gameObjectInfo);
         }
 
-        [System.Obsolete("ByNewPrefabResource has been renamed to ByNewContextPrefabResource to avoid confusion with ByNewPrefabResourceInstaller and ByNewPrefabResourceMethod")]
+        [Obsolete(
+            "ByNewPrefabResource has been renamed to ByNewContextPrefabResource to avoid confusion with ByNewPrefabResourceInstaller and ByNewPrefabResourceMethod")]
         public NameTransformScopeConcreteIdArgConditionCopyNonLazyBinder ByNewPrefabResource(string resourcePath)
         {
             return ByNewContextPrefabResource(resourcePath);
@@ -126,10 +134,10 @@ namespace Zenject
         {
             BindingUtil.AssertIsValidResourcePath(resourcePath);
 
-            var gameObjectInfo = new GameObjectCreationParameters();
+            GameObjectCreationParameters gameObjectInfo = new();
 
             ProviderFunc =
-                (container) => new SubContainerDependencyProvider(
+                container => new SubContainerDependencyProvider(
                     ContractType, SubIdentifier,
                     new SubContainerCreatorByNewPrefab(
                         container,

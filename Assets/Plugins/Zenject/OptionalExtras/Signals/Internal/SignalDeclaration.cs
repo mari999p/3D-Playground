@@ -9,12 +9,12 @@ namespace Zenject
 {
     public class SignalDeclaration : ITickable, IDisposable
     {
-        readonly List<SignalSubscription> _subscriptions = new List<SignalSubscription>();
-        readonly List<object> _asyncQueue = new List<object>();
-        readonly BindingId _bindingId;
-        readonly SignalMissingHandlerResponses _missingHandlerResponses;
-        readonly bool _isAsync;
-        readonly ZenjectSettings.SignalSettings _settings;
+        private readonly List<SignalSubscription> _subscriptions = new();
+        private readonly List<object> _asyncQueue = new();
+        private readonly BindingId _bindingId;
+        private readonly SignalMissingHandlerResponses _missingHandlerResponses;
+        private readonly bool _isAsync;
+        private readonly ZenjectSettings.SignalSettings _settings;
 
 #if ZEN_SIGNALS_ADD_UNIRX
         readonly Subject<object> _stream = new Subject<object>();
@@ -22,8 +22,7 @@ namespace Zenject
 
         public SignalDeclaration(
             SignalDeclarationBindInfo bindInfo,
-            [InjectOptional]
-            ZenjectSettings zenjectSettings)
+            [InjectOptional] ZenjectSettings zenjectSettings)
         {
             zenjectSettings = zenjectSettings ?? ZenjectSettings.Default;
             _settings = zenjectSettings.Signals ?? ZenjectSettings.SignalSettings.Default;
@@ -41,22 +40,13 @@ namespace Zenject
         }
 #endif
 
-		public List<SignalSubscription> Subscriptions => _subscriptions;
+        public List<SignalSubscription> Subscriptions => _subscriptions;
 
-        public int TickPriority
-        {
-            get; private set;
-        }
+        public int TickPriority { get; private set; }
 
-        public bool IsAsync
-        {
-            get { return _isAsync; }
-        }
+        public bool IsAsync => _isAsync;
 
-        public BindingId BindingId
-        {
-            get { return _bindingId; }
-        }
+        public BindingId BindingId => _bindingId;
 
         public void Dispose()
         {
@@ -92,37 +82,40 @@ namespace Zenject
             else
             {
                 // Cache the callback list to allow handlers to be added from within callbacks
-                using (var block = DisposeBlock.Spawn())
+                using (DisposeBlock block = DisposeBlock.Spawn())
                 {
-                    var subscriptions = block.SpawnList<SignalSubscription>();
+                    List<SignalSubscription> subscriptions = block.SpawnList<SignalSubscription>();
                     subscriptions.AddRange(_subscriptions);
                     FireInternal(subscriptions, signal);
                 }
             }
         }
 
-        void FireInternal(List<SignalSubscription> subscriptions, object signal)
+        private void FireInternal(List<SignalSubscription> subscriptions, object signal)
         {
             if (subscriptions.IsEmpty()
 #if ZEN_SIGNALS_ADD_UNIRX
                 && !_stream.HasObservers
 #endif
-                )
+               )
             {
                 if (_missingHandlerResponses == SignalMissingHandlerResponses.Warn)
                 {
-                    Log.Warn("Fired signal '{0}' but no subscriptions found!  If this is intentional then either add OptionalSubscriber() to the binding or change the default in ZenjectSettings", signal.GetType());
+                    Log.Warn(
+                        "Fired signal '{0}' but no subscriptions found!  If this is intentional then either add OptionalSubscriber() to the binding or change the default in ZenjectSettings",
+                        signal.GetType());
                 }
                 else if (_missingHandlerResponses == SignalMissingHandlerResponses.Throw)
                 {
                     throw Assert.CreateException(
-                        "Fired signal '{0}' but no subscriptions found!  If this is intentional then either add OptionalSubscriber() to the binding or change the default in ZenjectSettings", signal.GetType());
+                        "Fired signal '{0}' but no subscriptions found!  If this is intentional then either add OptionalSubscriber() to the binding or change the default in ZenjectSettings",
+                        signal.GetType());
                 }
             }
 
             for (int i = 0; i < subscriptions.Count; i++)
             {
-                var subscription = subscriptions[i];
+                SignalSubscription subscription = subscriptions[i];
 
                 // This is a weird check for the very rare case where an Unsubscribe is called
                 // from within the same callback (see TestSignalsAdvanced.TestSubscribeUnsubscribeInsideHandler)
@@ -144,14 +137,14 @@ namespace Zenject
             if (!_asyncQueue.IsEmpty())
             {
                 // Cache the callback list to allow handlers to be added from within callbacks
-                using (var block = DisposeBlock.Spawn())
+                using (DisposeBlock block = DisposeBlock.Spawn())
                 {
-                    var subscriptions = block.SpawnList<SignalSubscription>();
+                    List<SignalSubscription> subscriptions = block.SpawnList<SignalSubscription>();
                     subscriptions.AddRange(_subscriptions);
 
                     // Cache the signals so that if the signal is fired again inside the handler that it
                     // is not executed until next frame
-                    var signals = block.SpawnList<object>();
+                    List<object> signals = block.SpawnList<object>();
                     signals.AddRange(_asyncQueue);
 
                     _asyncQueue.Clear();
@@ -175,8 +168,6 @@ namespace Zenject
             _subscriptions.RemoveWithConfirm(subscription);
         }
 
-        public class Factory : PlaceholderFactory<SignalDeclarationBindInfo, SignalDeclaration>
-        {
-        }
+        public class Factory : PlaceholderFactory<SignalDeclarationBindInfo, SignalDeclaration> { }
     }
 }

@@ -7,9 +7,15 @@ namespace Zenject
     [NoReflectionBaking]
     public class SubContainerBindingFinalizer : ProviderBindingFinalizer
     {
-        readonly object _subIdentifier;
-        readonly bool _resolveAll;
-        readonly Func<DiContainer, ISubContainerCreator> _creatorFactory;
+        #region Variables
+
+        private readonly Func<DiContainer, ISubContainerCreator> _creatorFactory;
+        private readonly bool _resolveAll;
+        private readonly object _subIdentifier;
+
+        #endregion
+
+        #region Setup/Teardown
 
         public SubContainerBindingFinalizer(
             BindInfo bindInfo, object subIdentifier,
@@ -20,6 +26,10 @@ namespace Zenject
             _resolveAll = resolveAll;
             _creatorFactory = creatorFactory;
         }
+
+        #endregion
+
+        #region Protected methods
 
         protected override void OnFinalizeBinding(DiContainer container)
         {
@@ -34,9 +44,13 @@ namespace Zenject
             }
         }
 
-        void FinalizeBindingConcrete(DiContainer container, List<Type> concreteTypes)
+        #endregion
+
+        #region Private methods
+
+        private void FinalizeBindingConcrete(DiContainer container, List<Type> concreteTypes)
         {
-            var scope = GetScope();
+            ScopeTypes scope = GetScope();
 
             switch (scope)
             {
@@ -52,7 +66,8 @@ namespace Zenject
                 }
                 case ScopeTypes.Singleton:
                 {
-                    var containerCreator = new SubContainerCreatorCached(_creatorFactory(container));
+                    SubContainerCreatorCached containerCreator =
+                        new SubContainerCreatorCached(_creatorFactory(container));
 
                     RegisterProvidersForAllContractsPerConcreteType(
                         container,
@@ -69,9 +84,9 @@ namespace Zenject
             }
         }
 
-        void FinalizeBindingSelf(DiContainer container)
+        private void FinalizeBindingSelf(DiContainer container)
         {
-            var scope = GetScope();
+            ScopeTypes scope = GetScope();
 
             switch (scope)
             {
@@ -85,7 +100,8 @@ namespace Zenject
                 }
                 case ScopeTypes.Singleton:
                 {
-                    var containerCreator = new SubContainerCreatorCached(_creatorFactory(container));
+                    SubContainerCreatorCached containerCreator =
+                        new SubContainerCreatorCached(_creatorFactory(container));
 
                     RegisterProviderPerContract(
                         container,
@@ -100,7 +116,7 @@ namespace Zenject
                 }
             }
         }
+
+        #endregion
     }
 }
-
-

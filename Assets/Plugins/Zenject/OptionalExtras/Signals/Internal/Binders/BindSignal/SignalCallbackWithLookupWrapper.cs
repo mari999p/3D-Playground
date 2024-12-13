@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 
 namespace Zenject
 {
@@ -7,13 +8,19 @@ namespace Zenject
     // exceptions on AOT platforms
     public class SignalCallbackWithLookupWrapper : IDisposable
     {
-        readonly DiContainer _container;
-        readonly SignalBus _signalBus;
-        readonly Guid _lookupId;
-        readonly Func<object, Action<object>> _methodGetter;
-        readonly Type _objectType;
-        readonly Type _signalType;
-        readonly object _identifier;
+        #region Variables
+
+        private readonly DiContainer _container;
+        private readonly object _identifier;
+        private readonly Guid _lookupId;
+        private readonly Func<object, Action<object>> _methodGetter;
+        private readonly Type _objectType;
+        private readonly SignalBus _signalBus;
+        private readonly Type _signalType;
+
+        #endregion
+
+        #region Setup/Teardown
 
         public SignalCallbackWithLookupWrapper(
             SignalBindingBindInfo signalBindInfo,
@@ -34,9 +41,22 @@ namespace Zenject
             signalBus.SubscribeId(signalBindInfo.SignalType, _identifier, OnSignalFired);
         }
 
-        void OnSignalFired(object signal)
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
         {
-            var objects = _container.ResolveIdAll(_objectType, _lookupId);
+            _signalBus.UnsubscribeId(_signalType, _identifier, OnSignalFired);
+        }
+
+        #endregion
+
+        #region Private methods
+
+        private void OnSignalFired(object signal)
+        {
+            IList objects = _container.ResolveIdAll(_objectType, _lookupId);
 
             for (int i = 0; i < objects.Count; i++)
             {
@@ -44,10 +64,6 @@ namespace Zenject
             }
         }
 
-        public void Dispose()
-        {
-            _signalBus.UnsubscribeId(_signalType, _identifier, OnSignalFired);
-        }
+        #endregion
     }
 }
-

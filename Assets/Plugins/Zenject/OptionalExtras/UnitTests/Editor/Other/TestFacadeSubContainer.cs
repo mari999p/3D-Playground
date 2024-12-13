@@ -7,7 +7,84 @@ namespace Zenject.Tests.Other
     [TestFixture]
     public class TestFacadeSubContainer
     {
-        static int NumInstalls;
+        #region Public Nested Types
+
+        public class FooKernel : Kernel { }
+
+        public class InitTest : IInitializable
+        {
+            #region Variables
+
+            public static bool WasRun;
+
+            #endregion
+
+            #region IInitializable
+
+            public void Initialize()
+            {
+                WasRun = true;
+            }
+
+            #endregion
+        }
+
+        public class TickTest : ITickable
+        {
+            #region Variables
+
+            public static bool WasRun;
+
+            #endregion
+
+            #region ITickable
+
+            public void Tick()
+            {
+                WasRun = true;
+            }
+
+            #endregion
+        }
+
+        public class DisposeTest : IDisposable
+        {
+            #region Variables
+
+            public static bool WasRun;
+
+            #endregion
+
+            #region IDisposable
+
+            public void Dispose()
+            {
+                WasRun = true;
+            }
+
+            #endregion
+        }
+
+        #endregion
+
+        #region Variables
+
+        private static int NumInstalls;
+
+        #endregion
+
+        #region Public methods
+
+        public void InstallFoo(DiContainer subContainer)
+        {
+            NumInstalls++;
+
+            subContainer.Bind<FooKernel>().AsSingle();
+
+            subContainer.Bind<IInitializable>().To<InitTest>().AsSingle();
+            subContainer.Bind<ITickable>().To<TickTest>().AsSingle();
+            subContainer.Bind<IDisposable>().To<DisposeTest>().AsSingle();
+        }
 
         [Test]
         public void Test1()
@@ -17,7 +94,7 @@ namespace Zenject.Tests.Other
             TickTest.WasRun = false;
             DisposeTest.WasRun = false;
 
-            var container = new DiContainer();
+            DiContainer container = new DiContainer();
 
             container.Bind(typeof(TickableManager), typeof(InitializableManager), typeof(DisposableManager))
                 .ToSelf().AsSingle().CopyIntoAllSubContainers();
@@ -26,9 +103,9 @@ namespace Zenject.Tests.Other
             container.BindInterfacesAndSelfTo<FooKernel>()
                 .FromSubContainerResolve().ByMethod(InstallFoo).AsSingle();
 
-            var tickManager = container.Resolve<TickableManager>();
-            var initManager = container.Resolve<InitializableManager>();
-            var disposeManager = container.Resolve<DisposableManager>();
+            TickableManager tickManager = container.Resolve<TickableManager>();
+            InitializableManager initManager = container.Resolve<InitializableManager>();
+            DisposableManager disposeManager = container.Resolve<DisposableManager>();
 
             Assert.That(!InitTest.WasRun);
             Assert.That(!TickTest.WasRun);
@@ -43,51 +120,6 @@ namespace Zenject.Tests.Other
             Assert.That(DisposeTest.WasRun);
         }
 
-        public void InstallFoo(DiContainer subContainer)
-        {
-            NumInstalls++;
-
-            subContainer.Bind<FooKernel>().AsSingle();
-
-            subContainer.Bind<IInitializable>().To<InitTest>().AsSingle();
-            subContainer.Bind<ITickable>().To<TickTest>().AsSingle();
-            subContainer.Bind<IDisposable>().To<DisposeTest>().AsSingle();
-        }
-
-        public class FooKernel : Kernel
-        {
-        }
-
-        public class InitTest : IInitializable
-        {
-            public static bool WasRun;
-
-            public void Initialize()
-            {
-                WasRun = true;
-            }
-        }
-
-        public class TickTest : ITickable
-        {
-            public static bool WasRun;
-
-            public void Tick()
-            {
-                WasRun = true;
-            }
-        }
-
-        public class DisposeTest : IDisposable
-        {
-            public static bool WasRun;
-
-            public void Dispose()
-            {
-                WasRun = true;
-            }
-        }
+        #endregion
     }
 }
-
-

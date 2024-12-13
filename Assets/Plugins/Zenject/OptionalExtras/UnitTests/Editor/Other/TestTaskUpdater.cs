@@ -8,15 +8,13 @@ namespace Zenject.Tests.Other
     [TestFixture]
     public class TestTaskUpdater
     {
-        DiContainer _container;
+        #region Variables
 
-        [SetUp]
-        public void Setup()
-        {
-            _container = new DiContainer();
+        private DiContainer _container;
 
-            _container.Bind<TaskUpdater<ITickable>>().FromInstance(new TickablesTaskUpdater());
-        }
+        #endregion
+
+        #region Public methods
 
         public void BindTickable<TTickable>(int priority) where TTickable : ITickable
         {
@@ -24,10 +22,12 @@ namespace Zenject.Tests.Other
             _container.Bind<ValuePair<Type, int>>().FromInstance(ValuePair.New(typeof(TTickable), priority));
         }
 
-        [Test]
-        public void TestTickablesAreOptional()
+        [SetUp]
+        public void Setup()
         {
-            Assert.IsNotNull(_container.Resolve<TaskUpdater<ITickable>>());
+            _container = new DiContainer();
+
+            _container.Bind<TaskUpdater<ITickable>>().FromInstance(new TickablesTaskUpdater());
         }
 
         [Test]
@@ -38,11 +38,11 @@ namespace Zenject.Tests.Other
             BindTickable<Tickable1>(0);
             BindTickable<Tickable2>(1);
 
-            var taskUpdater = _container.Resolve<TaskUpdater<ITickable>>();
+            TaskUpdater<ITickable> taskUpdater = _container.Resolve<TaskUpdater<ITickable>>();
 
-            var tick1 = _container.Resolve<Tickable1>();
-            var tick2 = _container.Resolve<Tickable2>();
-            var tick3 = _container.Resolve<Tickable3>();
+            Tickable1 tick1 = _container.Resolve<Tickable1>();
+            Tickable2 tick2 = _container.Resolve<Tickable2>();
+            Tickable3 tick3 = _container.Resolve<Tickable3>();
 
             int tickCount = 0;
 
@@ -67,34 +67,70 @@ namespace Zenject.Tests.Other
             taskUpdater.UpdateAll();
         }
 
-        class Tickable1 : ITickable
+        [Test]
+        public void TestTickablesAreOptional()
         {
-            public event Action TickCalled = delegate {};
+            Assert.IsNotNull(_container.Resolve<TaskUpdater<ITickable>>());
+        }
+
+        #endregion
+
+        #region Local data
+
+        private class Tickable1 : ITickable
+        {
+            #region Events
+
+            public event Action TickCalled = delegate { };
+
+            #endregion
+
+            #region ITickable
 
             public void Tick()
             {
                 TickCalled();
             }
+
+            #endregion
         }
 
-        class Tickable2 : ITickable
+        private class Tickable2 : ITickable
         {
-            public event Action TickCalled = delegate {};
+            #region Events
+
+            public event Action TickCalled = delegate { };
+
+            #endregion
+
+            #region ITickable
 
             public void Tick()
             {
                 TickCalled();
             }
+
+            #endregion
         }
 
-        class Tickable3 : ITickable
+        private class Tickable3 : ITickable
         {
-            public event Action TickCalled = delegate {};
+            #region Events
+
+            public event Action TickCalled = delegate { };
+
+            #endregion
+
+            #region ITickable
 
             public void Tick()
             {
                 TickCalled();
             }
+
+            #endregion
         }
+
+        #endregion
     }
 }

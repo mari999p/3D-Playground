@@ -1,4 +1,3 @@
-
 using System.Collections;
 using System.Linq;
 using NUnit.Framework;
@@ -10,13 +9,13 @@ namespace Zenject.Tests.Bindings.FromComponentInHierarchyGameObjectContext
 {
     public class TestFromComponentInHierarchyGameObjectContext : ZenjectIntegrationTestFixture
     {
-        GameObject FooPrefab
-        {
-            get
-            {
-                return FixtureUtil.GetPrefab("TestFromComponentInHierarchyGameObjectContext/Foo");
-            }
-        }
+        #region Properties
+
+        private GameObject FooPrefab => FixtureUtil.GetPrefab("TestFromComponentInHierarchyGameObjectContext/Foo");
+
+        #endregion
+
+        #region Public methods
 
         [SetUp]
         public void SetUp()
@@ -35,12 +34,13 @@ namespace Zenject.Tests.Bindings.FromComponentInHierarchyGameObjectContext
 
             PostInstall();
 
-            var foo = Container.Resolve<Foo>();
+            Foo foo = Container.Resolve<Foo>();
 
             Assert.IsNotNull(foo.Gorp);
             Assert.IsEqual(foo.gameObject.GetComponentsInChildren<Gorp>().Single(), foo.Gorp);
             yield break;
         }
+
+        #endregion
     }
 }
-

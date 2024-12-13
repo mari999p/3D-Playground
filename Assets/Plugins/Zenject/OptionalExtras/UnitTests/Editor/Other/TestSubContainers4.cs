@@ -7,18 +7,53 @@ namespace Zenject.Tests.Other
     [TestFixture]
     public class TestSubContainers4 : ZenjectUnitTestFixture
     {
-        readonly Dictionary<object, DiContainer> _subContainers = new Dictionary<object, DiContainer>();
+        #region Public Nested Types
+
+        public class RotorController
+        {
+            #region Variables
+
+            [Inject]
+            public RotorModel Model;
+
+            #endregion
+        }
+
+        public class RotorView
+        {
+            #region Variables
+
+            [Inject]
+            public RotorController Controller;
+
+            [Inject]
+            public RotorModel Model;
+
+            #endregion
+        }
+
+        public class RotorModel { }
+
+        #endregion
+
+        #region Variables
+
+        private readonly Dictionary<object, DiContainer> _subContainers = new();
+
+        #endregion
+
+        #region Public methods
 
         [Test]
         public void RunTest()
         {
             SetupContainer();
 
-            var view1 = Container.Resolve<RotorView>();
+            RotorView view1 = Container.Resolve<RotorView>();
 
             Assert.IsEqual(view1.Controller.Model, view1.Model);
 
-            var view2 = Container.Resolve<RotorView>();
+            RotorView view2 = Container.Resolve<RotorView>();
 
             Assert.IsEqual(view2.Controller.Model, view2.Model);
 
@@ -26,7 +61,17 @@ namespace Zenject.Tests.Other
             Assert.IsNotEqual(view2, view1);
         }
 
-        void SetupContainer()
+        #endregion
+
+        #region Private methods
+
+        private void InstallViewBindings(DiContainer subContainer)
+        {
+            subContainer.Bind<RotorController>().AsSingle();
+            subContainer.Bind<RotorModel>().AsSingle();
+        }
+
+        private void SetupContainer()
         {
             Container.Bind<RotorController>().FromMethod(SubContainerResolve<RotorController>).AsTransient()
                 .WhenInjectedInto<RotorView>();
@@ -37,7 +82,7 @@ namespace Zenject.Tests.Other
             Container.Bind<RotorView>().AsTransient();
         }
 
-        T SubContainerResolve<T>(InjectContext context)
+        private T SubContainerResolve<T>(InjectContext context)
         {
             Assert.IsNotNull(context.ObjectInstance);
             DiContainer subContainer;
@@ -53,30 +98,6 @@ namespace Zenject.Tests.Other
             return (T)subContainer.Resolve(context);
         }
 
-        void InstallViewBindings(DiContainer subContainer)
-        {
-            subContainer.Bind<RotorController>().AsSingle();
-            subContainer.Bind<RotorModel>().AsSingle();
-        }
-
-        public class RotorController
-        {
-            [Inject]
-            public RotorModel Model;
-        }
-
-        public class RotorView
-        {
-            [Inject]
-            public RotorController Controller;
-
-            [Inject]
-            public RotorModel Model;
-        }
-
-        public class RotorModel
-        {
-        }
+        #endregion
     }
 }
-

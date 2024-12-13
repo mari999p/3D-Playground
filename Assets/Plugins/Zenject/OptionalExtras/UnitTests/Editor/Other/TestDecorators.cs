@@ -6,39 +6,63 @@ namespace Zenject.Tests.Other
     [TestFixture]
     public class TestDecorators : ZenjectUnitTestFixture
     {
-        static int CallCounter;
+        #region Public Nested Types
 
         public interface ISaveHandler
         {
+            #region Public methods
+
             void Save();
+
+            #endregion
         }
 
         public class SaveHandler : ISaveHandler
         {
+            #region Properties
+
+            public static int CallCount { get; set; }
+
+            public static int NumInstances { get; set; }
+
+            #endregion
+
+            #region Setup/Teardown
+
             public SaveHandler()
             {
                 NumInstances++;
             }
 
-            public static int CallCount
-            {
-                get; set;
-            }
+            #endregion
 
-            public static int NumInstances
-            {
-                get; set;
-            }
+            #region ISaveHandler
 
             public void Save()
             {
                 CallCount = CallCounter++;
             }
+
+            #endregion
         }
 
         public class SaveDecorator1 : ISaveHandler
         {
-            readonly ISaveHandler _handler;
+            #region Variables
+
+            private readonly ISaveHandler _handler;
+
+            #endregion
+
+            #region Properties
+
+            public static int CallCount { get; set; }
+
+            public static int NumInstances { get; set; }
+
+            #endregion
+
+            #region Setup/Teardown
 
             public SaveDecorator1(ISaveHandler handler)
             {
@@ -46,83 +70,64 @@ namespace Zenject.Tests.Other
                 NumInstances++;
             }
 
-            public static int NumInstances
-            {
-                get; set;
-            }
+            #endregion
 
-            public static int CallCount
-            {
-                get; set;
-            }
+            #region ISaveHandler
 
             public void Save()
             {
                 CallCount = CallCounter++;
                 _handler.Save();
             }
+
+            #endregion
         }
 
         public class SaveDecorator2 : ISaveHandler
         {
-            readonly ISaveHandler _handler;
+            #region Variables
+
+            private readonly ISaveHandler _handler;
+
+            #endregion
+
+            #region Properties
+
+            public static int CallCount { get; set; }
+
+            #endregion
+
+            #region Setup/Teardown
 
             public SaveDecorator2(ISaveHandler handler)
             {
                 _handler = handler;
             }
 
-            public static int CallCount
-            {
-                get; set;
-            }
+            #endregion
+
+            #region ISaveHandler
 
             public void Save()
             {
                 CallCount = CallCounter++;
                 _handler.Save();
             }
+
+            #endregion
         }
 
-        public class Foo
-        {
-        }
+        public class Foo { }
 
-        [Test]
-        public void TestSimpleCase()
-        {
-            Container.Bind<ISaveHandler>().To<SaveHandler>().AsSingle();
-            Container.Decorate<ISaveHandler>().With<SaveDecorator1>();
+        #endregion
 
-            CallCounter = 1;
-            SaveHandler.CallCount = 0;
-            SaveDecorator1.CallCount = 0;
+        #region Variables
 
-            Container.Resolve<ISaveHandler>().Save();
+        private static int CallCounter;
 
-            Assert.IsEqual(SaveDecorator1.CallCount, 1);
-            Assert.IsEqual(SaveHandler.CallCount, 2);
-        }
+        #endregion
 
-        [Test]
-        public void TestMultiple()
-        {
-            Container.Bind<ISaveHandler>().To<SaveHandler>().AsSingle();
-
-            Container.Decorate<ISaveHandler>().With<SaveDecorator1>();
-            Container.Decorate<ISaveHandler>().With<SaveDecorator2>();
-
-            CallCounter = 1;
-            SaveHandler.CallCount = 0;
-            SaveDecorator1.CallCount = 0;
-            SaveDecorator2.CallCount = 0;
-
-            Container.Resolve<ISaveHandler>().Save();
-
-            Assert.IsEqual(SaveDecorator2.CallCount, 1);
-            Assert.IsEqual(SaveDecorator1.CallCount, 2);
-            Assert.IsEqual(SaveHandler.CallCount, 3);
-        }
+        #region Public methods
 
         [Test]
         public void TestCaching()
@@ -165,6 +170,24 @@ namespace Zenject.Tests.Other
         }
 
         [Test]
+        public void TestContainerInheritance()
+        {
+            Container.Bind<ISaveHandler>().To<SaveHandler>().AsSingle();
+            Container.Decorate<ISaveHandler>().With<SaveDecorator1>();
+
+            DiContainer subContainer = Container.CreateSubContainer();
+
+            CallCounter = 1;
+            SaveHandler.CallCount = 0;
+            SaveDecorator1.CallCount = 0;
+
+            subContainer.Resolve<ISaveHandler>().Save();
+
+            Assert.IsEqual(SaveDecorator1.CallCount, 1);
+            Assert.IsEqual(SaveHandler.CallCount, 2);
+        }
+
+        [Test]
         public void TestDecoratorMethod()
         {
             SaveHandler.NumInstances = 0;
@@ -175,10 +198,10 @@ namespace Zenject.Tests.Other
             Container.Bind<ISaveHandler>().To<SaveHandler>().AsSingle();
             Container.Decorate<ISaveHandler>()
                 .With<SaveDecorator1>().FromMethod((x, h) =>
-                        {
-                            wasCalled = true;
-                            return new SaveDecorator1(h);
-                        });
+                {
+                    wasCalled = true;
+                    return new SaveDecorator1(h);
+                });
 
             CallCounter = 1;
             Assert.That(!wasCalled);
@@ -193,44 +216,63 @@ namespace Zenject.Tests.Other
         }
 
         [Test]
-        public void TestContainerInheritance()
+        public void TestMultiple()
+        {
+            Container.Bind<ISaveHandler>().To<SaveHandler>().AsSingle();
+
+            Container.Decorate<ISaveHandler>().With<SaveDecorator1>();
+            Container.Decorate<ISaveHandler>().With<SaveDecorator2>();
+
+            CallCounter = 1;
+            SaveHandler.CallCount = 0;
+            SaveDecorator1.CallCount = 0;
+            SaveDecorator2.CallCount = 0;
+
+            Container.Resolve<ISaveHandler>().Save();
+
+            Assert.IsEqual(SaveDecorator2.CallCount, 1);
+            Assert.IsEqual(SaveDecorator1.CallCount, 2);
+            Assert.IsEqual(SaveHandler.CallCount, 3);
+        }
+
+        [Test]
+        public void TestSimpleCase()
         {
             Container.Bind<ISaveHandler>().To<SaveHandler>().AsSingle();
             Container.Decorate<ISaveHandler>().With<SaveDecorator1>();
-
-            var subContainer = Container.CreateSubContainer();
 
             CallCounter = 1;
             SaveHandler.CallCount = 0;
             SaveDecorator1.CallCount = 0;
 
-            subContainer.Resolve<ISaveHandler>().Save();
+            Container.Resolve<ISaveHandler>().Save();
 
             Assert.IsEqual(SaveDecorator1.CallCount, 1);
             Assert.IsEqual(SaveHandler.CallCount, 2);
         }
 
+        #endregion
 
         // TODO - Fix this
         //[Test]
         //public void TestContainerInheritance2()
         //{
-            //Container.Bind<ISaveHandler>().To<SaveHandler>().AsSingle();
-            //Container.Decorate<ISaveHandler>().With<SaveDecorator1>();
+        //Container.Bind<ISaveHandler>().To<SaveHandler>().AsSingle();
+        //Container.Decorate<ISaveHandler>().With<SaveDecorator1>();
 
-            //var subContainer = Container.CreateSubContainer();
-            //subContainer.Decorate<ISaveHandler>().With<SaveDecorator2>();
+        //var subContainer = Container.CreateSubContainer();
+        //subContainer.Decorate<ISaveHandler>().With<SaveDecorator2>();
 
-            //CallCounter = 1;
-            //SaveHandler.CallCount = 0;
-            //SaveDecorator1.CallCount = 0;
-            //SaveDecorator2.CallCount = 0;
+        //CallCounter = 1;
+        //SaveHandler.CallCount = 0;
+        //SaveDecorator1.CallCount = 0;
+        //SaveDecorator2.CallCount = 0;
 
-            //subContainer.Resolve<ISaveHandler>().Save();
+        //subContainer.Resolve<ISaveHandler>().Save();
 
-            //Assert.IsEqual(SaveDecorator2.CallCount, 1);
-            //Assert.IsEqual(SaveDecorator1.CallCount, 2);
-            //Assert.IsEqual(SaveHandler.CallCount, 3);
+        //Assert.IsEqual(SaveDecorator2.CallCount, 1);
+        //Assert.IsEqual(SaveDecorator1.CallCount, 2);
+        //Assert.IsEqual(SaveHandler.CallCount, 3);
         //}
     }
 }

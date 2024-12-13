@@ -3,14 +3,29 @@
 using System;
 using System.Collections.Generic;
 using ModestTree;
+using UnityEngine;
 
 namespace Zenject
 {
     [NoReflectionBaking]
     public class InstantiateOnPrefabComponentProvider : IProvider
     {
-        readonly IPrefabInstantiator _prefabInstantiator;
-        readonly Type _componentType;
+        #region Variables
+
+        private readonly Type _componentType;
+        private readonly IPrefabInstantiator _prefabInstantiator;
+
+        #endregion
+
+        #region Properties
+
+        public bool IsCached => false;
+
+        public bool TypeVariesBasedOnMemberType => false;
+
+        #endregion
+
+        #region Setup/Teardown
 
         // if concreteType is null we use the contract type from inject context
         public InstantiateOnPrefabComponentProvider(
@@ -21,15 +36,9 @@ namespace Zenject
             _componentType = componentType;
         }
 
-        public bool IsCached
-        {
-            get { return false; }
-        }
+        #endregion
 
-        public bool TypeVariesBasedOnMemberType
-        {
-            get { return false; }
-        }
+        #region IProvider
 
         public Type GetInstanceType(InjectContext context)
         {
@@ -41,14 +50,15 @@ namespace Zenject
         {
             Assert.IsNotNull(context);
 
-            var gameObject = _prefabInstantiator.Instantiate(context, args, out injectAction);
+            GameObject gameObject = _prefabInstantiator.Instantiate(context, args, out injectAction);
 
-            var component = gameObject.AddComponent(_componentType);
+            Component component = gameObject.AddComponent(_componentType);
 
             buffer.Add(component);
         }
+
+        #endregion
     }
 }
 
 #endif
-

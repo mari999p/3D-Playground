@@ -8,6 +8,16 @@ namespace Zenject.Tests.Injection
     [TestFixture]
     public class TestListInjection : ZenjectUnitTestFixture
     {
+        #region Public methods
+
+        [Test]
+        public void TestArrays()
+        {
+            BindListItems();
+            Container.Bind<Test5>().AsSingle();
+            TestListItems(Container.Resolve<Test5>().Values.ToList());
+        }
+
         [Test]
         public void TestConstructor1()
         {
@@ -25,14 +35,6 @@ namespace Zenject.Tests.Injection
         }
 
         [Test]
-        public void TestIList()
-        {
-            BindListItems();
-            Container.Bind<Test2>().AsSingle();
-            TestListItems(Container.Resolve<Test2>().Values.ToList());
-        }
-
-        [Test]
         public void TestIEnumerable()
         {
             BindListItems();
@@ -41,81 +43,115 @@ namespace Zenject.Tests.Injection
         }
 
         [Test]
-        public void TestArrays()
+        public void TestIList()
         {
             BindListItems();
-            Container.Bind<Test5>().AsSingle();
-            TestListItems(Container.Resolve<Test5>().Values.ToList());
+            Container.Bind<Test2>().AsSingle();
+            TestListItems(Container.Resolve<Test2>().Values.ToList());
         }
 
-        void BindListItems()
+        #endregion
+
+        #region Private methods
+
+        private void BindListItems()
         {
             Container.BindInstance("foo");
             Container.BindInstance("bar");
         }
 
-        void TestListItems(List<string> values)
+        private void TestListItems(List<string> values)
         {
             Assert.IsEqual(values[0], "foo");
             Assert.IsEqual(values[1], "bar");
         }
 
-        class Test1
+        #endregion
+
+        #region Local data
+
+        private class Test1
         {
+            #region Properties
+
+            public List<string> Values { get; private set; }
+
+            #endregion
+
+            #region Setup/Teardown
+
             public Test1(List<string> values)
             {
                 Values = values;
             }
 
-            public List<string> Values
-            {
-                get; private set;
-            }
+            #endregion
         }
 
-        class Test3
+        private class Test2
         {
-            [Inject]
-            public List<string> Values = null;
-        }
+            #region Properties
 
-        class Test2
-        {
+            public IList<string> Values { get; private set; }
+
+            #endregion
+
+            #region Setup/Teardown
+
             public Test2(IList<string> values)
             {
                 Values = values;
             }
 
-            public IList<string> Values
-            {
-                get; private set;
-            }
+            #endregion
         }
 
-        class Test4
+        private class Test3
         {
+            #region Variables
+
+            [Inject]
+            public List<string> Values;
+
+            #endregion
+        }
+
+        private class Test4
+        {
+            #region Properties
+
+            public IEnumerable<string> Values { get; private set; }
+
+            #endregion
+
+            #region Setup/Teardown
+
             public Test4(IEnumerable<string> values)
             {
                 Values = values;
             }
 
-            public IEnumerable<string> Values
-            {
-                get; private set;
-            }
+            #endregion
         }
 
-        class Test5
+        private class Test5
         {
+            #region Properties
+
+            public string[] Values { get; private set; }
+
+            #endregion
+
+            #region Setup/Teardown
+
             public Test5(string[] values)
             {
                 Values = values;
             }
 
-            public string[] Values
-            {
-                get; private set;
-            }
+            #endregion
         }
+
+        #endregion
     }
 }

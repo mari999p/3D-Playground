@@ -5,10 +5,20 @@ namespace Zenject.Tests.Other
     [TestFixture]
     public class TestTransientMockProvider : ZenjectUnitTestFixture
     {
+        #region Public Nested Types
+
         public interface IFoo
         {
+            #region Public methods
+
             int GetBar();
+
+            #endregion
         }
+
+        #endregion
+
+        #region Public methods
 
         [Test]
         public void TestCase1()
@@ -21,5 +31,7 @@ namespace Zenject.Tests.Other
 
             //Assert.IsEqual(foo.GetBar(), 0);
         }
+
+        #endregion
     }
 }

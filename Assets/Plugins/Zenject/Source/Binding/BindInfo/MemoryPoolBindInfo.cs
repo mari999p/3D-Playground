@@ -4,32 +4,30 @@ namespace Zenject
     {
         OneAtATime,
         Double,
-        Disabled
+        Disabled,
     }
 
     [NoReflectionBaking]
     public class MemoryPoolBindInfo
     {
+        #region Properties
+
+        public PoolExpandMethods ExpandMethod { get; set; }
+
+        public int InitialSize { get; set; }
+
+        public int MaxSize { get; set; }
+
+        #endregion
+
+        #region Setup/Teardown
+
         public MemoryPoolBindInfo()
         {
             ExpandMethod = PoolExpandMethods.OneAtATime;
             MaxSize = int.MaxValue;
         }
 
-        public PoolExpandMethods ExpandMethod
-        {
-            get; set;
-        }
-
-        public int InitialSize
-        {
-            get; set;
-        }
-
-        public int MaxSize
-        {
-            get; set;
-        }
+        #endregion
     }
 }
-

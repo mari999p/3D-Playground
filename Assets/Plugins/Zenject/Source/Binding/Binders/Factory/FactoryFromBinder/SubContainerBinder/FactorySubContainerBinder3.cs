@@ -6,18 +6,23 @@ namespace Zenject
     public class FactorySubContainerBinder<TParam1, TParam2, TParam3, TContract>
         : FactorySubContainerBinderWithParams<TContract>
     {
+        #region Setup/Teardown
+
         public FactorySubContainerBinder(
             DiContainer bindContainer, BindInfo bindInfo, FactoryBindInfo factoryBindInfo, object subIdentifier)
-            : base(bindContainer, bindInfo, factoryBindInfo, subIdentifier)
-        {
-        }
+            : base(bindContainer, bindInfo, factoryBindInfo, subIdentifier) { }
 
-        public ScopeConcreteIdArgConditionCopyNonLazyBinder ByMethod(Action<DiContainer, TParam1, TParam2, TParam3> installerMethod)
+        #endregion
+
+        #region Public methods
+
+        public ScopeConcreteIdArgConditionCopyNonLazyBinder ByMethod(
+            Action<DiContainer, TParam1, TParam2, TParam3> installerMethod)
         {
-            var subcontainerBindInfo = new SubContainerCreatorBindInfo();
+            SubContainerCreatorBindInfo subcontainerBindInfo = new();
 
             ProviderFunc =
-                (container) => new SubContainerDependencyProvider(
+                container => new SubContainerDependencyProvider(
                     ContractType, SubIdentifier,
                     new SubContainerCreatorByMethod<TParam1, TParam2, TParam3>(
                         container, subcontainerBindInfo, installerMethod), false);
@@ -25,14 +30,16 @@ namespace Zenject
             return new ScopeConcreteIdArgConditionCopyNonLazyBinder(BindInfo);
         }
 
+        #endregion
+
 #if !NOT_UNITY3D
         public NameTransformScopeConcreteIdArgConditionCopyNonLazyBinder ByNewGameObjectMethod(
             Action<DiContainer, TParam1, TParam2, TParam3> installerMethod)
         {
-            var gameObjectInfo = new GameObjectCreationParameters();
+            GameObjectCreationParameters gameObjectInfo = new();
 
             ProviderFunc =
-                (container) => new SubContainerDependencyProvider(
+                container => new SubContainerDependencyProvider(
                     ContractType, SubIdentifier,
                     new SubContainerCreatorByNewGameObjectMethod<TParam1, TParam2, TParam3>(
                         container, gameObjectInfo, installerMethod), false);
@@ -41,12 +48,13 @@ namespace Zenject
         }
 
         public NameTransformScopeConcreteIdArgConditionCopyNonLazyBinder ByNewPrefabMethod(
-            Func<InjectContext, UnityEngine.Object> prefabGetter, Action<DiContainer, TParam1, TParam2, TParam3> installerMethod)
+            Func<InjectContext, UnityEngine.Object> prefabGetter,
+            Action<DiContainer, TParam1, TParam2, TParam3> installerMethod)
         {
-            var gameObjectInfo = new GameObjectCreationParameters();
+            GameObjectCreationParameters gameObjectInfo = new();
 
             ProviderFunc =
-                (container) => new SubContainerDependencyProvider(
+                container => new SubContainerDependencyProvider(
                     ContractType, SubIdentifier,
                     new SubContainerCreatorByNewPrefabMethod<TParam1, TParam2, TParam3>(
                         container,
@@ -61,10 +69,10 @@ namespace Zenject
         {
             BindingUtil.AssertIsValidPrefab(prefab);
 
-            var gameObjectInfo = new GameObjectCreationParameters();
+            GameObjectCreationParameters gameObjectInfo = new();
 
             ProviderFunc =
-                (container) => new SubContainerDependencyProvider(
+                container => new SubContainerDependencyProvider(
                     ContractType, SubIdentifier,
                     new SubContainerCreatorByNewPrefabMethod<TParam1, TParam2, TParam3>(
                         container,
@@ -79,10 +87,10 @@ namespace Zenject
         {
             BindingUtil.AssertIsValidResourcePath(resourcePath);
 
-            var gameObjectInfo = new GameObjectCreationParameters();
+            GameObjectCreationParameters gameObjectInfo = new();
 
             ProviderFunc =
-                (container) => new SubContainerDependencyProvider(
+                container => new SubContainerDependencyProvider(
                     ContractType, SubIdentifier,
                     new SubContainerCreatorByNewPrefabMethod<TParam1, TParam2, TParam3>(
                         container,
@@ -94,5 +102,3 @@ namespace Zenject
 #endif
     }
 }
-
-

@@ -5,7 +5,13 @@ namespace Zenject
     [NoReflectionBaking]
     public class SignalCopyBinder
     {
-        readonly List<BindInfo> _bindInfos;
+        #region Variables
+
+        private readonly List<BindInfo> _bindInfos;
+
+        #endregion
+
+        #region Setup/Teardown
 
         public SignalCopyBinder()
         {
@@ -16,9 +22,13 @@ namespace Zenject
         {
             _bindInfos = new List<BindInfo>
             {
-                bindInfo
+                bindInfo,
             };
         }
+
+        #endregion
+
+        #region Public methods
 
         // This is used in cases where you have multiple bindings that depend on each other so should
         // be inherited together
@@ -50,12 +60,18 @@ namespace Zenject
             SetInheritanceMethod(BindingInheritanceMethods.MoveDirectOnly);
         }
 
-        void SetInheritanceMethod(BindingInheritanceMethods method)
+        #endregion
+
+        #region Private methods
+
+        private void SetInheritanceMethod(BindingInheritanceMethods method)
         {
             for (int i = 0; i < _bindInfos.Count; i++)
             {
                 _bindInfos[i].BindingInheritanceMethod = method;
             }
         }
+
+        #endregion
     }
 }

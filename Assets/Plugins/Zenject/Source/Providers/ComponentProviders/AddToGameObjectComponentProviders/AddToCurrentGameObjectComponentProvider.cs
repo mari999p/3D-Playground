@@ -12,11 +12,29 @@ namespace Zenject
     [NoReflectionBaking]
     public class AddToCurrentGameObjectComponentProvider : IProvider
     {
-        readonly Type _componentType;
-        readonly DiContainer _container;
-        readonly List<TypeValuePair> _extraArguments;
-        readonly object _concreteIdentifier;
-        readonly Action<InjectContext, object> _instantiateCallback;
+        #region Variables
+
+        private readonly Type _componentType;
+        private readonly object _concreteIdentifier;
+        private readonly DiContainer _container;
+        private readonly List<TypeValuePair> _extraArguments;
+        private readonly Action<InjectContext, object> _instantiateCallback;
+
+        #endregion
+
+        #region Properties
+
+        public bool IsCached => false;
+
+        public bool TypeVariesBasedOnMemberType => false;
+
+        protected Type ComponentType => _componentType;
+
+        protected DiContainer Container => _container;
+
+        #endregion
+
+        #region Setup/Teardown
 
         public AddToCurrentGameObjectComponentProvider(
             DiContainer container, Type componentType,
@@ -32,25 +50,9 @@ namespace Zenject
             _instantiateCallback = instantiateCallback;
         }
 
-        public bool IsCached
-        {
-            get { return false; }
-        }
+        #endregion
 
-        public bool TypeVariesBasedOnMemberType
-        {
-            get { return false; }
-        }
-
-        protected DiContainer Container
-        {
-            get { return _container; }
-        }
-
-        protected Type ComponentType
-        {
-            get { return _componentType; }
-        }
+        #region IProvider
 
         public Type GetInstanceType(InjectContext context)
         {
@@ -70,9 +72,9 @@ namespace Zenject
 
             if (!_container.IsValidating || TypeAnalyzer.ShouldAllowDuringValidation(_componentType))
             {
-                var gameObj = ((Component)context.ObjectInstance).gameObject;
+                GameObject gameObj = ((Component)context.ObjectInstance).gameObject;
 
-                var componentInstance = gameObj.GetComponent(_componentType);
+                Component componentInstance = gameObj.GetComponent(_componentType);
                 instance = componentInstance;
 
                 // Use componentInstance so that it triggers unity's overloaded comparison operator
@@ -97,7 +99,7 @@ namespace Zenject
 
             injectAction = () =>
             {
-                var extraArgs = ZenPools.SpawnList<TypeValuePair>();
+                List<TypeValuePair> extraArgs = ZenPools.SpawnList<TypeValuePair>();
 
                 extraArgs.AllocFreeAddRange(_extraArguments);
                 extraArgs.AllocFreeAddRange(args);
@@ -115,6 +117,8 @@ namespace Zenject
 
             buffer.Add(instance);
         }
+
+        #endregion
     }
 }
 

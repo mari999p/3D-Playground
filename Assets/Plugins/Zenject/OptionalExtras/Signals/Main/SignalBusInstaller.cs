@@ -5,9 +5,12 @@ namespace Zenject
     // Note that you only need to install this once
     public class SignalBusInstaller : Installer<SignalBusInstaller>
     {
+        #region Public methods
+
         public override void InstallBindings()
         {
-            Assert.That(!Container.HasBinding<SignalBus>(), "Detected multiple SignalBus bindings.  SignalBusInstaller should only be installed once");
+            Assert.That(!Container.HasBinding<SignalBus>(),
+                "Detected multiple SignalBus bindings.  SignalBusInstaller should only be installed once");
 
             Container.BindInterfacesAndSelfTo<SignalBus>().AsSingle().CopyIntoAllSubContainers();
 
@@ -20,5 +23,7 @@ namespace Zenject
 
             Container.BindFactory<SignalDeclarationBindInfo, SignalDeclaration, SignalDeclaration.Factory>();
         }
+
+        #endregion
     }
 }
