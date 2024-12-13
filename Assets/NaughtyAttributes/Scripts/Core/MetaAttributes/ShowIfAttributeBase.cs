@@ -4,14 +4,20 @@ namespace NaughtyAttributes
 {
     public class ShowIfAttributeBase : MetaAttribute
     {
-        public string[] Conditions { get; private set; }
+        #region Properties
+
         public EConditionOperator ConditionOperator { get; private set; }
-        public bool Inverted { get; protected set; }
+        public string[] Conditions { get; private set; }
 
         /// <summary>
         ///		If this not null, <see cref="Conditions"/>[0] is name of an enum variable.
         /// </summary>
         public Enum EnumValue { get; private set; }
+        public bool Inverted { get; protected set; }
+
+        #endregion
+
+        #region Setup/Teardown
 
         public ShowIfAttributeBase(string condition)
         {
@@ -35,5 +41,7 @@ namespace NaughtyAttributes
 
             EnumValue = enumValue;
         }
+
+        #endregion
     }
 }

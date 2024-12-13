@@ -2,9 +2,11 @@
 
 namespace NaughtyAttributes
 {
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Method)]
     public class ShowIfAttribute : ShowIfAttributeBase
     {
+        #region Setup/Teardown
+
         public ShowIfAttribute(string condition)
             : base(condition)
         {
@@ -22,5 +24,7 @@ namespace NaughtyAttributes
         {
             Inverted = false;
         }
+
+        #endregion
     }
 }

@@ -4,15 +4,16 @@ namespace NaughtyAttributes.Test
 {
     public class BoxGroupTest : MonoBehaviour
     {
-        [BoxGroup("Integers")]
-        public int int0;
-        [BoxGroup("Integers")]
-        public int int1;
+        #region Variables
 
         [BoxGroup("Floats")]
         public float float0;
         [BoxGroup("Floats")]
         public float float1;
+        [BoxGroup("Integers")]
+        public int int0;
+        [BoxGroup("Integers")]
+        public int int1;
 
         [BoxGroup("Sliders")]
         [MinMaxSlider(0, 1)]
@@ -28,5 +29,7 @@ namespace NaughtyAttributes.Test
         public Transform trans0;
         [BoxGroup]
         public Transform trans1;
+
+        #endregion
     }
 }

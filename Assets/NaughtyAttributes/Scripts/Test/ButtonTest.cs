@@ -5,13 +5,13 @@ namespace NaughtyAttributes.Test
 {
     public class ButtonTest : MonoBehaviour
     {
+        #region Variables
+
         public int myInt;
 
-        [Button(enabledMode: EButtonEnableMode.Always)]
-        private void IncrementMyInt()
-        {
-            myInt++;
-        }
+        #endregion
+
+        #region Private methods
 
         [Button("Decrement My Int", EButtonEnableMode.Editor)]
         private void DecrementMyInt()
@@ -19,10 +19,10 @@ namespace NaughtyAttributes.Test
             myInt--;
         }
 
-        [Button(enabledMode: EButtonEnableMode.Playmode)]
-        private void LogMyInt(string prefix = "MyInt = ")
+        [Button(enabledMode: EButtonEnableMode.Always)]
+        private void IncrementMyInt()
         {
-            Debug.Log(prefix + myInt);
+            myInt++;
         }
 
         [Button("StartCoroutine")]
@@ -35,5 +35,13 @@ namespace NaughtyAttributes.Test
                 yield return new WaitForSeconds(1.0f);
             }
         }
+
+        [Button(enabledMode: EButtonEnableMode.Playmode)]
+        private void LogMyInt(string prefix = "MyInt = ")
+        {
+            Debug.Log(prefix + myInt);
+        }
+
+        #endregion
     }
 }
