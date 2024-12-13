@@ -1,7 +1,5 @@
 using DG.Tweening;
 using NaughtyAttributes;
-using Playground.Utils;
-using Playground.Utils.Logger;
 using Playground.Utils.Logger;
 using UnityEngine;
 

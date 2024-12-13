@@ -1,15 +1,17 @@
+using Playground.Services.Input;
 using Zenject;
 
-namespace DefaultNamespace;
-
-public class ProjectInstaller: MonoInstaller
+namespace Playground.Installers
 {
-    public override void InstallBindings()
+    public class ProjectInstaller : MonoInstaller
     {
-        InputServiceInstaller.Install(Container);
+        #region Public methods
+
+        public override void InstallBindings()
+        {
+            InputServiceInstaller.Install(Container);
+        }
+
+        #endregion
     }
-}
-}
-{
-    
 }
