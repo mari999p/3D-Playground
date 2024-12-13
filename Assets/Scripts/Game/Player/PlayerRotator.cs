@@ -2,7 +2,7 @@ using Playground.Services.Input;
 using UnityEngine;
 using Zenject;
 
-namespace Playground.Game
+namespace Playground.Game.Player
 {
     public class PlayerRotator : MonoBehaviour
     {

@@ -3,9 +3,9 @@ using Playground.Services.Input;
 using UnityEngine;
 using Zenject;
 
-namespace Playground.Game
+namespace Playground.Game.Player
 {
-    public class PlayerMovement : MonoBehaviour
+    public class PlayerMovement : PlayerBehaviour
     {
         #region Variables
 
