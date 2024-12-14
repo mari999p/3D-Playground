@@ -11,7 +11,6 @@ namespace Playground.Game.Block
         [SerializeField] private float _fallDistance = 3f;
         [SerializeField] private float _fallDuration = 1f;
         [SerializeField] private float _returnDuration = 1f;
-        [SerializeField] private float _returnDelay = 2f;
         [SerializeField] private LayerMask _playerLayer;
         [SerializeField] private bool _canFall = true;
         private Vector3 _initialPosition;
